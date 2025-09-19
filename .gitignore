@@ -1,0 +1,13 @@
+# Node.js
+node_modules/
+npm-debug.log
+.env
+.DS_Store
+
+# Mobile platforms (Capacitor/Cordova)
+android/
+ios/
+
+# Build outputs (if any build steps are introduced later)
+dist/
+build/

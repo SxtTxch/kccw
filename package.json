@@ -1,0 +1,20 @@
+{
+  "name": "kccw",
+  "version": "1.0.0",
+  "description": "Krakowskie cyfrowe centrum wolontariatu",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo Web assets are served directly from the public directory, no separate build step required."
+  },
+  "author": "SxtTxch",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
+    "express": "^5.1.0",
+    "firebase": "^12.2.1"
+  }
+}

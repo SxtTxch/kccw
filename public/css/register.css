@@ -1,0 +1,244 @@
+body {
+    background-color: #1969BC; /* Updated blue background color */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    color: white; /* Ensure text is visible on blue background */
+}
+
+.login-container {
+    padding: 2rem;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 400px; /* Default max-width */
+    text-align: center;
+    transition: max-width 0.3s ease-in-out; /* Smooth transition for width change */
+}
+
+.login-container.wider-form {
+    max-width: 700px; /* Wider max-width for institution form */
+}
+
+.header-icon {
+    width: 250px; /* Fixed width for the logo container */
+    height: 80px; /* Fixed height for the logo container */
+    background-color: transparent;
+    border-radius: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.header-icon img {
+    height: 100%; /* Make image fill the height of its container */
+    width: auto; /* Maintain aspect ratio */
+    max-width: 100%; /* Ensure image doesn't overflow */
+    object-fit: contain; /* Ensure the whole image is visible */
+}
+
+.header-title {
+    font-size: 2.8rem; /* Slightly larger title */
+    font-weight: bold;
+    margin-left: 0.5rem;
+}
+
+.role-switch {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+}
+
+#volunteer-fields,
+#institution-fields {
+    margin-bottom: 1.5rem; /* Ensure space before email/password fields */
+}
+
+.role-switch span {
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: color 0.3s ease-in-out;
+}
+
+.role-switch span.active {
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.role-switch .separator {
+    margin: 0 10px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Input Field Styles */
+.form-group {
+    width: 100%; /* Ensure full width by default on small screens */
+    margin-bottom: 1.5rem; /* Vertical spacing when stacked */
+    position: relative;
+}
+
+.form-control {
+    background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent background */
+    border: none;
+    color: white;
+    padding: 0.9rem 1.25rem 0.9rem 3rem; /* Increased padding, space for icon */
+    border-radius: 50px; /* Pill shape */
+    height: auto; /* Allow height to adjust */
+    transition: background-color 0.2s ease-in-out;
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    opacity: 1; /* Ensure placeholder is visible */
+}
+
+.form-control:focus {
+    background-color: rgba(255, 255, 255, 0.3); /* Slightly brighter on focus */
+    box-shadow: none;
+    color: white;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1.25rem; /* Adjusted position to be inside */
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem; /* Slightly larger icon */
+}
+
+/* Button Styles */
+.btn-primary {
+    background-color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #007bff;
+    font-weight: bold;
+    padding: 0.8rem 2rem; /* Increased padding for wider button */
+    border-radius: 50px; /* Pill shape */
+    width: 250px; /* Fixed width */
+    max-width: 250px; /* Fixed max width */
+    margin: 0 auto; /* Center the button */
+    display: block; /* Ensure margin auto works */
+    transition: background-color 0.1s ease-out, border-color 0.1s ease-out, color 0.1s ease-out;
+}
+
+.btn-primary:hover {
+    background-color: #f0f0f0;
+    border-color: #f0f0f0;
+    color: #007bff;
+}
+
+.btn-primary:active {
+    background-color: #e0e0e0;
+    border-color: #e0e0e0;
+    color: #0056b3;
+    transform: translateY(1px);
+    transition: none;
+}
+
+.switch-to-login {
+    margin-top: 2.5rem;
+}
+
+.switch-to-login a {
+    color: #FFD700; /* Gold color for better visibility */
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.1rem; 
+}
+
+.switch-to-login a:hover {
+    text-decoration: underline;
+}
+
+/* Specific styles for institution fields to enable two-column layout */
+.institution-fields-grid {
+    display: flex; /* Revert to flex to enable two-column layout */
+    flex-wrap: wrap; /* Allow items to wrap into multiple rows */
+    justify-content: space-between; /* Distributes space evenly */
+    gap: 1.5rem; /* Consistent spacing */
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.institution-fields-grid .form-group {
+    flex: 1 1 calc(50% - 0.75rem); /* Two columns, considering half of the gap on each side */
+    margin: 0; /* Explicitly remove all margins here */
+    padding-left: 0; /* Reset internal padding */
+    padding-right: 0; /* Reset internal padding */
+    max-width: calc(50% - 0.75rem); /* Ensure fields don't grow too large */
+}
+
+.institution-fields-grid .password-fields-row {
+    width: 100%; /* Take full width within the grid */
+    display: flex; /* Keep as flex to lay out password fields side-by-side */
+    justify-content: space-between; /* Distribute space evenly */
+    gap: 1.5rem; /* Space between password fields */
+    margin-top: 1.5rem; /* Space above this row */
+    margin-bottom: 0; /* Handled by container's margin-bottom */
+}
+
+.institution-fields-grid .password-fields-row .form-group {
+    flex: 1 1 calc(50% - 0.75rem); /* Each password field takes half width */
+    max-width: calc(50% - 0.75rem); /* Limit max width */
+    margin: 0; /* Prevent extra margin */
+}
+
+/* Styling for password fields outside the grid in institution section */
+#institution-fields .form-group:nth-last-child(2), /* This targets the password field */
+#institution-fields .form-group:last-child { /* This targets the repeat password field */
+    margin-bottom: 1.5rem; /* Add space below these fields */
+}
+
+/* Ensure individual form-groups maintain their full width outside grids */
+#institution-fields > .form-group {
+    width: 100%;
+    max-width: 100%;
+}
+
+footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    padding: 1rem 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+footer p {
+    margin: 0;
+}
+
+footer .technologies-used {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Styling for the message box */
+#message-box {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
