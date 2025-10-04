@@ -10,7 +10,9 @@ import {
   where, 
   orderBy,
   onSnapshot,
-  serverTimestamp 
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore';
 import { db } from './config';
 
@@ -458,32 +460,6 @@ export interface UserProfile {
       target: number;   // 500 points
     };
   };
-  // Coordinator specific metadata
-  coordinatorInfo?: {
-    schoolInfo: {
-      name: string;
-      address: string;
-      phone: string;
-    };
-    department?: string;
-    position?: string;
-  };
-  // Organization specific metadata
-  organizationInfo?: {
-    description?: string;
-    website?: string;
-    socialMedia?: {
-      facebook?: string;
-      instagram?: string;
-      twitter?: string;
-    };
-    contactPerson: {
-      name: string;
-      position: string;
-      phone: string;
-      email: string;
-    };
-  };
   createdAt?: any;
   updatedAt?: any;
 }
@@ -894,7 +870,7 @@ export const checkAndAwardBadge = async (userId: string, badgeType: string): Pro
     
     if (!badge || badge.earned) return false;
     
-    if (badge.progress >= badge.target) {
+    if ('progress' in badge && 'target' in badge && badge.progress >= badge.target) {
       const docRef = doc(db, 'users', userId);
       await updateDoc(docRef, {
         [`badges.${badgeType}.earned`]: true,
@@ -908,5 +884,185 @@ export const checkAndAwardBadge = async (userId: string, badgeType: string): Pro
   } catch (error) {
     console.error('Error checking badge:', error);
     return false;
+  }
+};
+
+// Offer interface
+export interface Offer {
+  id: string;
+  title: string;
+  description: string;
+  organization: string;
+  organizationId: string;
+  category: string;
+  location: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  startDate: string;
+  endDate: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  requirements: string[];
+  benefits: string[];
+  contactEmail: string;
+  contactPhone?: string;
+  status: 'active' | 'inactive' | 'completed';
+  urgency: 'low' | 'medium' | 'high';
+  createdAt: any;
+  updatedAt: any;
+  participants: string[]; // Array of user IDs
+}
+
+// Get all offers
+export const getAllOffers = async (): Promise<Offer[]> => {
+  try {
+    console.log('Fetching all offers...');
+    const offersRef = collection(db, 'offers');
+    const q = query(offersRef, where('status', '==', 'active'));
+    const querySnapshot = await getDocs(q);
+    
+    const offers: Offer[] = [];
+    querySnapshot.forEach((doc) => {
+      offers.push({
+        id: doc.id,
+        ...doc.data()
+      } as Offer);
+    });
+    
+    // Sort by createdAt in JavaScript instead of Firestore
+    offers.sort((a, b) => {
+      if (a.createdAt && b.createdAt) {
+        return b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime();
+      }
+      return 0;
+    });
+    
+    console.log(`Fetched ${offers.length} offers`);
+    return offers;
+  } catch (error) {
+    console.error('Error fetching offers:', error);
+    return [];
+  }
+};
+
+// Get offer by ID
+export const getOfferById = async (offerId: string): Promise<Offer | null> => {
+  try {
+    const offerRef = doc(db, 'offers', offerId);
+    const offerSnap = await getDoc(offerRef);
+    
+    if (offerSnap.exists()) {
+      return {
+        id: offerSnap.id,
+        ...offerSnap.data()
+      } as Offer;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching offer:', error);
+    return null;
+  }
+};
+
+// Sign up for an offer
+export const signUpForOffer = async (offerId: string, userId: string): Promise<boolean> => {
+  try {
+    console.log(`Signing up user ${userId} for offer ${offerId}`);
+    
+    const offerRef = doc(db, 'offers', offerId);
+    const offerSnap = await getDoc(offerRef);
+    
+    if (!offerSnap.exists()) {
+      console.error('Offer not found');
+      return false;
+    }
+    
+    const offerData = offerSnap.data() as Offer;
+    
+    // Check if user is already signed up
+    if (offerData.participants.includes(userId)) {
+      console.log('User already signed up for this offer');
+      return false;
+    }
+    
+    // Check if offer is full
+    if (offerData.currentParticipants >= offerData.maxParticipants) {
+      console.log('Offer is full');
+      return false;
+    }
+    
+    // Add user to participants
+    await updateDoc(offerRef, {
+      participants: arrayUnion(userId),
+      currentParticipants: offerData.currentParticipants + 1,
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('Successfully signed up for offer');
+    return true;
+  } catch (error) {
+    console.error('Error signing up for offer:', error);
+    return false;
+  }
+};
+
+// Cancel signup for an offer
+export const cancelOfferSignup = async (offerId: string, userId: string): Promise<boolean> => {
+  try {
+    console.log(`Canceling signup for user ${userId} from offer ${offerId}`);
+    
+    const offerRef = doc(db, 'offers', offerId);
+    const offerSnap = await getDoc(offerRef);
+    
+    if (!offerSnap.exists()) {
+      console.error('Offer not found');
+      return false;
+    }
+    
+    const offerData = offerSnap.data() as Offer;
+    
+    // Check if user is signed up
+    if (!offerData.participants.includes(userId)) {
+      console.log('User is not signed up for this offer');
+      return false;
+    }
+    
+    // Remove user from participants
+    await updateDoc(offerRef, {
+      participants: arrayRemove(userId),
+      currentParticipants: offerData.currentParticipants - 1,
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('Successfully canceled offer signup');
+    return true;
+  } catch (error) {
+    console.error('Error canceling offer signup:', error);
+    return false;
+  }
+};
+
+// Create a new offer (for organizations)
+export const createOffer = async (offerData: Omit<Offer, 'id' | 'createdAt' | 'updatedAt' | 'participants' | 'currentParticipants'>): Promise<string | null> => {
+  try {
+    console.log('Creating new offer:', offerData.title);
+    
+    const offersRef = collection(db, 'offers');
+    const newOffer = await addDoc(offersRef, {
+      ...offerData,
+      participants: [],
+      currentParticipants: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('Offer created with ID:', newOffer.id);
+    return newOffer.id;
+  } catch (error) {
+    console.error('Error creating offer:', error);
+    return null;
   }
 };

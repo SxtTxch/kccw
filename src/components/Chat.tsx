@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -16,6 +16,7 @@ import {
   Paperclip,
   Smile
 } from "lucide-react";
+import { useChat, ChatContact } from "../contexts/ChatContext";
 
 interface Message {
   id: number;
@@ -25,25 +26,21 @@ interface Message {
   status?: 'sending' | 'sent' | 'delivered' | 'read';
 }
 
-interface Contact {
-  id: number;
-  name: string;
-  role: string;
-  organization?: string;
-  avatar?: string;
-  isOnline: boolean;
-  lastSeen?: string;
-}
-
 interface ChatProps {
-  contact: Contact;
   userType: 'wolontariusz' | 'koordynator' | 'organizacja';
-  onClose: () => void;
 }
 
-export function Chat({ contact, userType, onClose }: ChatProps) {
+export function Chat({ userType }: ChatProps) {
+  const { isChatOpen, currentContact, closeChat } = useChat();
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
+
+  // Don't render if chat is not open or no contact
+  if (!isChatOpen || !currentContact) {
+    return null;
+  }
+
+  const contact = currentContact;
+  const [messages, setMessages] = useState([
     {
       id: 1,
       text: "Cześć! Dziękuję za zainteresowanie naszą ofertą wolontariatu. W czym mogę Ci pomóc?",
@@ -61,7 +58,7 @@ export function Chat({ contact, userType, onClose }: ChatProps) {
   ]);
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -120,7 +117,7 @@ export function Chat({ contact, userType, onClose }: ChatProps) {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: any) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -163,23 +160,23 @@ export function Chat({ contact, userType, onClose }: ChatProps) {
         {/* Header */}
         <CardHeader className="p-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Avatar className="w-8 h-8">
+            <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+              <Avatar className="w-8 h-8 flex-shrink-0">
                 <AvatarFallback className="bg-white text-pink-600 text-sm">
                   {contact.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-medium truncate">{contact.name}</h3>
+              <div className="min-w-0 flex-1 max-w-[50%]">
+                <h3 className="text-sm font-medium break-words">{contact.name}</h3>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${contact.isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
-                  <p className="text-xs opacity-90">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${contact.isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
+                  <p className="text-xs opacity-90 truncate">
                     {contact.isOnline ? 'Online' : contact.lastSeen || 'Offline'}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -191,7 +188,7 @@ export function Chat({ contact, userType, onClose }: ChatProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onClose}
+                onClick={closeChat}
                 className="h-8 w-8 text-white hover:bg-white/20"
               >
                 <X className="h-4 w-4" />
@@ -287,75 +284,48 @@ export function Chat({ contact, userType, onClose }: ChatProps) {
 
 // Chat Button Component for triggering chat
 interface ChatButtonProps {
-  contact: Contact;
+  contact: ChatContact;
   userType: 'wolontariusz' | 'koordynator' | 'organizacja';
   variant?: 'default' | 'icon' | 'inline';
   className?: string;
 }
 
 export function ChatButton({ contact, userType, variant = 'default', className = '' }: ChatButtonProps) {
-  const [showChat, setShowChat] = useState(false);
+  const { openChat } = useChat();
 
   if (variant === 'icon') {
     return (
-      <>
-        <Button 
-          variant="outline" 
-          size="icon"
-          onClick={() => setShowChat(true)}
-          className={className}
-        >
-          <MessageCircle className="h-4 w-4" />
-        </Button>
-        {showChat && (
-          <Chat 
-            contact={contact} 
-            userType={userType} 
-            onClose={() => setShowChat(false)} 
-          />
-        )}
-      </>
+      <Button 
+        variant="outline" 
+        size="icon"
+        onClick={() => openChat(contact)}
+        className={className}
+      >
+        <MessageCircle className="h-4 w-4" />
+      </Button>
     );
   }
 
   if (variant === 'inline') {
     return (
-      <>
-        <Button 
-          variant="outline" 
-          onClick={() => setShowChat(true)}
-          className={`flex-1 ${className}`}
-        >
-          <MessageCircle className="h-4 w-4 mr-2" />
-          Kontakt
-        </Button>
-        {showChat && (
-          <Chat 
-            contact={contact} 
-            userType={userType} 
-            onClose={() => setShowChat(false)} 
-          />
-        )}
-      </>
+      <Button 
+        variant="outline" 
+        onClick={() => openChat(contact)}
+        className={`flex-1 ${className}`}
+      >
+        <MessageCircle className="h-4 w-4 mr-2" />
+        Kontakt
+      </Button>
     );
   }
 
   return (
-    <>
-      <Button 
-        onClick={() => setShowChat(true)}
-        className={`bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90 text-white ${className}`}
-      >
-        <MessageCircle className="h-4 w-4 mr-2" />
-        Napisz wiadomość
-      </Button>
-      {showChat && (
-        <Chat 
-          contact={contact} 
-          userType={userType} 
-          onClose={() => setShowChat(false)} 
-        />
-      )}
-    </>
+    <Button 
+      onClick={() => openChat(contact)}
+      className={`bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90 text-white ${className}`}
+    >
+      <MessageCircle className="h-4 w-4 mr-2" />
+      Napisz wiadomość
+    </Button>
   );
 }

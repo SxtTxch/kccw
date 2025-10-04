@@ -48,10 +48,12 @@ import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton } from "./Chat";
 import { EditProfile } from "./EditProfile";
+import { getAllOffers, signUpForOffer, cancelOfferSignup } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 
 interface User {
   id: number;
+  uid: string;
   email: string;
   userType: string;
   firstName: string;
@@ -66,20 +68,30 @@ interface VolunteerDashboardProps {
 }
 
 interface Offer {
-  id: number;
+  id: string;
   title: string;
-  organization: string;
-  location: string;
-  duration: string;
-  category: string;
   description: string;
-  requirements: string[];
-  participants: number;
-  maxParticipants: number;
+  organization: string;
+  organizationId: string;
+  category: string;
+  location: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   startDate: string;
   endDate: string;
-  isApplied: boolean;
+  maxParticipants: number;
+  currentParticipants: number;
+  requirements: string[];
+  benefits: string[];
+  contactEmail: string;
+  contactPhone?: string;
+  status: 'active' | 'inactive' | 'completed';
   urgency: 'low' | 'medium' | 'high';
+  createdAt: any;
+  updatedAt: any;
+  participants: string[]; // Array of user IDs
 }
 
 interface CalendarEvent {
@@ -116,56 +128,6 @@ interface VolunteerStats {
   specialAchievements: number;
 }
 
-const mockOffers: Offer[] = [
-  {
-    id: 1,
-    title: "Pomoc w schronisku dla zwierząt",
-    organization: "Fundacja Przyjaciół Zwierząt",
-    location: "Warszawa, Mokotów",
-    duration: "3 godziny",
-    category: "Opieka nad zwierzętami",
-    description: "Pomoc w karmieniu, sprzątaniu i spacerach z psami.",
-    requirements: ["Miłość do zwierząt", "Brak alergii"],
-    participants: 8,
-    maxParticipants: 12,
-    startDate: "2024-10-15",
-    endDate: "2024-10-15",
-    isApplied: false,
-    urgency: 'medium'
-  },
-  {
-    id: 2,
-    title: "Pakowanie paczek świątecznych",
-    organization: "Caritas Warszawa",
-    location: "Warszawa, Centrum",
-    duration: "4 godziny",
-    category: "Pomoc społeczna",
-    description: "Pakowanie paczek żywnościowych dla potrzebujących rodzin.",
-    requirements: ["Dokładność", "Praca w zespole"],
-    participants: 15,
-    maxParticipants: 20,
-    startDate: "2024-12-20",
-    endDate: "2024-12-20",
-    isApplied: true,
-    urgency: 'high'
-  },
-  {
-    id: 3,
-    title: "Zajęcia z dziećmi w świetlicy",
-    organization: "Stowarzyszenie Dziecięcy Uśmiech",
-    location: "Kraków, Nowa Huta",
-    duration: "2 godziny",
-    category: "Praca z dziećmi",
-    description: "Prowadzenie zajęć plastycznych i gier dla dzieci w wieku 6-12 lat.",
-    requirements: ["Doświadczenie z dziećmi", "Kreatywność", "Zaświadczenie o niekaralności (dla małoletnich zgoda rodziców)"],
-    participants: 5,
-    maxParticipants: 8,
-    startDate: "2024-10-25",
-    endDate: "2024-10-25",
-    isApplied: false,
-    urgency: 'low'
-  }
-];
 
 const mockCalendarEvents: CalendarEvent[] = [
   {
@@ -483,12 +445,13 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
-  const [offers] = useState<Offer[]>(mockOffers);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [completedActions, setCompletedActions] = useState<CompletedAction[]>(mockCompletedActions);
-  const [selectedActionForPhotos, setSelectedActionForPhotos] = useState<number | null>(null);
-  const [calendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
-  const [volunteerStats, setVolunteerStats] = useState<VolunteerStats>({
+  const [offers, setOffers] = useState([]);
+  const [loadingOffers, setLoadingOffers] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [completedActions, setCompletedActions] = useState(mockCompletedActions);
+  const [selectedActionForPhotos, setSelectedActionForPhotos] = useState(null);
+  const [calendarEvents] = useState(mockCalendarEvents);
+  const [volunteerStats, setVolunteerStats] = useState({
     totalHours: 0,
     totalProjects: 0,
     currentStreak: 0,
@@ -496,8 +459,8 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     impactPoints: 0,
     specialAchievements: 0
   });
-  const [badges, setBadges] = useState<Badge[]>([]);
-  const [selectedBadgeCategory, setSelectedBadgeCategory] = useState<string>("all");
+  const [badges, setBadges] = useState([]);
+  const [selectedBadgeCategory, setSelectedBadgeCategory] = useState("all");
 
   // Convert Firestore badge data to Badge interface
   useEffect(() => {
@@ -713,6 +676,25 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     }
   }, [userProfile]);
 
+  // Fetch offers from Firestore
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        setLoadingOffers(true);
+        const firestoreOffers = await getAllOffers();
+        console.log('Fetched offers from Firestore:', firestoreOffers);
+        setOffers(firestoreOffers);
+      } catch (error) {
+        console.error('Error fetching offers:', error);
+        setOffers([]);
+      } finally {
+        setLoadingOffers(false);
+      }
+    };
+
+    fetchOffers();
+  }, []);
+
   // Function to handle photo upload for completed actions
   const handlePhotoUpload = (actionId: number, files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -784,7 +766,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
-  const appliedOffers = offers.filter(offer => offer.isApplied);
+  const appliedOffers = offers.filter(offer => offer.participants.includes(user?.uid || ''));
   const userAge = calculateAge(user.birthDate);
 
   const getUrgencyColor = (urgency: string) => {
@@ -856,10 +838,48 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
 
-  const handleApplyToOffer = (offerId: number) => {
-    // Mock application logic
-    console.log(`Applied to offer ${offerId}`);
+  const handleApplyToOffer = async (offerId: string) => {
+    try {
+      if (!user?.uid) {
+        alert("Musisz być zalogowany, aby zgłosić się na ofertę.");
+        return;
+      }
+
+      const success = await signUpForOffer(offerId, user.uid);
+      if (success) {
     alert("Zgłoszenie zostało wysłane! Organizacja skontaktuje się z Tobą wkrótce.");
+        // Refresh offers to update the UI
+        const updatedOffers = await getAllOffers();
+        setOffers(updatedOffers);
+      } else {
+        alert("Nie udało się zgłosić na ofertę. Spróbuj ponownie.");
+      }
+    } catch (error) {
+      console.error('Error applying to offer:', error);
+      alert("Wystąpił błąd podczas zgłaszania się na ofertę.");
+    }
+  };
+
+  const handleCancelOffer = async (offerId: string) => {
+    try {
+      if (!user?.uid) {
+        alert("Musisz być zalogowany, aby anulować zgłoszenie.");
+        return;
+      }
+
+      const success = await cancelOfferSignup(offerId, user.uid);
+      if (success) {
+        alert("Zgłoszenie zostało anulowane.");
+        // Refresh offers to update the UI
+        const updatedOffers = await getAllOffers();
+        setOffers(updatedOffers);
+      } else {
+        alert("Nie udało się anulować zgłoszenia. Spróbuj ponownie.");
+      }
+    } catch (error) {
+      console.error('Error canceling offer:', error);
+      alert("Wystąpił błąd podczas anulowania zgłoszenia.");
+    }
   };
 
   const OfferCard = ({ offer }: { offer: Offer }) => (
@@ -884,62 +904,84 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             {offer.location}
           </div>
           <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            {offer.duration}
-          </div>
-          <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             {new Date(offer.startDate).toLocaleDateString('pl-PL')}
           </div>
           <div className="flex items-center gap-1">
             <Users className="h-4 w-4" />
-            {offer.participants}/{offer.maxParticipants}
+            {offer.currentParticipants}/{offer.maxParticipants}
           </div>
         </div>
       </CardHeader>
       
       <CardContent className="pt-0">
         <div className="mb-3">
-          <Badge variant="secondary" className="mb-2">{offer.category}</Badge>
+          <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-md border mb-2">
+            {offer.category}
+          </span>
           <p className="text-sm mb-2">{offer.description}</p>
           
           {offer.requirements.length > 0 && (
             <div className="mb-3">
-              <p className="text-sm mb-1">Wymagania:</p>
-              <div className="flex flex-wrap gap-1">
+              <p className="text-sm mb-2 font-medium">Wymagania:</p>
+              <div className="flex flex-wrap gap-2">
                 {offer.requirements.map((req, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
+                  <span 
+                    key={index} 
+                    className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md border"
+                  >
                     {req}
-                  </Badge>
+                  </span>
                 ))}
               </div>
               {user.isMinor && offer.requirements.some(req => req.includes("niekaralności")) && (
-                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                   <Bell className="h-3 w-3" />
                   Jako osoba małoletnia będziesz potrzebować zgody rodziców
                 </p>
               )}
             </div>
           )}
+
+          {offer.benefits && offer.benefits.length > 0 && (
+            <div className="mb-3">
+              <p className="text-sm mb-2 font-medium">Korzyści:</p>
+              <div className="flex flex-wrap gap-2">
+                {offer.benefits.map((benefit, index) => (
+                  <span 
+                    key={index} 
+                    className="inline-block px-2 py-1 text-xs bg-green-100 text-green-700 rounded-md border"
+                  >
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="flex gap-2">
-          {offer.isApplied ? (
-            <Button variant="outline" disabled className="flex-1">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Zgłoszono
+          {offer.participants.includes(user?.uid || '') ? (
+            <Button 
+              variant="outline" 
+              onClick={() => handleCancelOffer(offer.id)}
+              className="flex-1"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Anuluj zgłoszenie
             </Button>
           ) : (
             <Button 
               onClick={() => handleApplyToOffer(offer.id)}
               className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90"
+              disabled={offer.currentParticipants >= offer.maxParticipants}
             >
               Zgłoś się
             </Button>
           )}
           <ChatButton 
             contact={{
-              id: offer.id,
+              id: parseInt(offer.id) || 0,
               name: offer.organization,
               role: "Koordynator",
               organization: offer.organization,
@@ -1040,7 +1082,14 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             </Card>
 
             {/* Offers List */}
-            {filteredOffers.length > 0 ? (
+            {loadingOffers ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Ładowanie ofert...</p>
+                </CardContent>
+              </Card>
+            ) : filteredOffers.length > 0 ? (
               filteredOffers.map(offer => (
                 <OfferCard key={offer.id} offer={offer} />
               ))

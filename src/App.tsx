@@ -11,11 +11,14 @@ import { CoordinatorDashboard } from "./components/CoordinatorDashboard";
 import { OrganizationDashboard } from "./components/OrganizationDashboard";
 import { MobileMetaTags } from "./components/MobileMetaTags";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ChatProvider, useChat } from "./contexts/ChatContext";
 import { createUserProfile, UserProfile } from "./firebase/firestore";
 import { usePageTracking } from "./hooks/useAnalytics";
+import { Chat } from "./components/Chat";
 
 function AppContent() {
   const { user, userProfile, loading, signIn, signUp, logout } = useAuth();
+  const { isChatOpen } = useChat() as any;
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [isRegistration, setIsRegistration] = useState(false);
   
@@ -267,13 +270,28 @@ function AppContent() {
     console.log('User type:', userProfile.userType); // Debug log
     
     if (userProfile.userType === "wolontariusz") {
-      return <VolunteerDashboard user={userProfile} onLogout={handleBackToSelection} />;
+      return (
+        <>
+          <VolunteerDashboard user={userProfile} onLogout={handleBackToSelection} />
+          {isChatOpen && <Chat userType={userProfile.userType} />}
+        </>
+      );
     }
     if (userProfile.userType === "koordynator") {
-      return <CoordinatorDashboard user={userProfile} onLogout={handleBackToSelection} />;
+      return (
+        <>
+          <CoordinatorDashboard user={userProfile} onLogout={handleBackToSelection} />
+          {isChatOpen && <Chat userType={userProfile.userType} />}
+        </>
+      );
     }
     if (userProfile.userType === "organizacja") {
-      return <OrganizationDashboard user={userProfile} onLogout={handleBackToSelection} />;
+      return (
+        <>
+          <OrganizationDashboard user={userProfile} onLogout={handleBackToSelection} />
+          {isChatOpen && <Chat userType={userProfile.userType} />}
+        </>
+      );
     }
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
@@ -710,7 +728,8 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ChatProvider children={<AppContent />}>
+      </ChatProvider>
     </AuthProvider>
   );
 }
