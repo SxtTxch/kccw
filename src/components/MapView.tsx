@@ -4,7 +4,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { GoogleMap } from "./GoogleMap";
 import { 
   MapPin, 
   Navigation, 
@@ -289,12 +288,54 @@ export function MapView({ userType }: MapViewProps) {
       {/* Google Maps */}
       <Card>
         <CardContent className="p-4">
-          <GoogleMap
-            initiatives={filteredInitiatives}
-            onInitiativeSelect={setSelectedInitiative}
-            selectedInitiative={selectedInitiative}
-            userType={userType}
-          />
+          <div className="space-y-4">
+            {/* Interactive Map with Markers */}
+            <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center relative overflow-hidden">
+              {/* Google Maps Embed */}
+              <iframe
+                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyCNX5U-nlxxUcbvF61Gj6tkMssIdBmBmCg&q=Warsaw,Poland&zoom=11`}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="rounded-lg"
+              ></iframe>
+              
+              {/* Overlay Markers */}
+              <div className="absolute inset-0 pointer-events-none">
+                {filteredInitiatives.slice(0, 4).map((initiative, index) => {
+                  const IconComponent = getCategoryIcon(initiative.category);
+                  return (
+                    <div
+                      key={initiative.id}
+                      className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 hover:scale-110 pointer-events-auto`}
+                      style={{
+                        left: `${25 + index * 20}%`,
+                        top: `${30 + (index % 2) * 25}%`
+                      }}
+                      onClick={() => setSelectedInitiative(initiative)}
+                    >
+                      <div className="bg-white rounded-full p-2 shadow-lg border-2 border-primary">
+                        <IconComponent className="h-4 w-4 text-primary" />
+                      </div>
+                      {initiative.urgency === 'high' && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Map Info */}
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Znaleziono {filteredInitiatives.length} inicjatyw w okolicy
+              </p>
+            </div>
+          </div>
 
           <div className="mt-4 flex justify-between items-center">
             <Button
