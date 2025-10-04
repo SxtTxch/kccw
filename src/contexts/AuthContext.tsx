@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  validateUserType: (expectedUserType: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -87,6 +88,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await signOutUser();
   };
 
+  const validateUserType = (expectedUserType: string): boolean => {
+    if (!userProfile) return false;
+    return userProfile.userType === expectedUserType;
+  };
+
   const value: AuthContextType = {
     user,
     userProfile,
@@ -94,6 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     logout,
+    validateUserType,
   };
 
   return (

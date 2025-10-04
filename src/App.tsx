@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -17,13 +17,25 @@ import { usePageTracking } from "./hooks/useAnalytics";
 import { Chat } from "./components/Chat";
 
 function AppContent() {
-  const { user, userProfile, loading, signIn, signUp, logout } = useAuth();
+  const { user, userProfile, loading, signIn, signUp, logout, validateUserType } = useAuth();
   const { isChatOpen } = useChat() as any;
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [isRegistration, setIsRegistration] = useState(false);
   
   // Track page views
   usePageTracking('main-app');
+  
+  // Check user type validation after login
+  useEffect(() => {
+    if (user && userProfile && selectedUserType) {
+      if (!validateUserType(selectedUserType)) {
+        alert(`Błąd: To konto nie jest typu ${selectedUserType}. Proszę wybrać odpowiedni typ użytkownika.`);
+        logout();
+        setSelectedUserType(null);
+      }
+    }
+  }, [user, userProfile, selectedUserType, validateUserType, logout]);
+
   const [loginData, setLoginData] = useState({
     email: "",
     password: ""
@@ -67,7 +79,7 @@ function AppContent() {
       // Authentication state will be handled by the AuthContext
     } catch (error) {
       console.error('Login error:', error);
-      // Handle login error (you might want to show a toast or error message)
+      alert("Błąd logowania. Sprawdź dane i spróbuj ponownie.");
     }
   };
 
@@ -269,6 +281,23 @@ function AppContent() {
     console.log('User profile:', userProfile); // Debug log
     console.log('User type:', userProfile.userType); // Debug log
     
+    // Additional security check - ensure user type matches selected type
+    if (selectedUserType && userProfile.userType !== selectedUserType) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+          <div className="text-center max-w-sm mx-auto p-4">
+            <h2 className="text-xl font-bold text-red-600 mb-4">Błąd dostępu</h2>
+            <p className="text-gray-600 mb-4">
+              To konto nie jest typu {selectedUserType}. Proszę wybrać odpowiedni typ użytkownika.
+            </p>
+            <Button onClick={handleBackToSelection} className="w-full">
+              Wróć do wyboru typu konta
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     if (userProfile.userType === "wolontariusz") {
       return (
         <>
