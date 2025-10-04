@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { GoogleMap } from "./GoogleMap";
 import { 
   MapPin, 
   Navigation, 
@@ -285,47 +286,15 @@ export function MapView({ userType }: MapViewProps) {
         </CardContent>
       </Card>
 
-      {/* Map Placeholder */}
+      {/* Google Maps */}
       <Card>
         <CardContent className="p-4">
-          <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center relative overflow-hidden">
-            {/* Mock Map Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-blue-100 opacity-50"></div>
-            
-            {/* Mock Map Points */}
-            <div className="absolute inset-0">
-              {filteredInitiatives.slice(0, 4).map((initiative, index) => {
-                const IconComponent = getCategoryIcon(initiative.category);
-                return (
-                  <div
-                    key={initiative.id}
-                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 hover:scale-110`}
-                    style={{
-                      left: `${25 + index * 20}%`,
-                      top: `${30 + (index % 2) * 25}%`
-                    }}
-                    onClick={() => setSelectedInitiative(initiative)}
-                  >
-                    <div className="bg-white rounded-full p-2 shadow-lg border-2 border-primary">
-                      <IconComponent className="h-4 w-4 text-primary" />
-                    </div>
-                    {initiative.urgency === 'high' && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Map Center Icon */}
-            <div className="relative z-10 text-center">
-              <MapPin className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Interaktywna mapa inicjatyw</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Znaleziono {filteredInitiatives.length} inicjatyw w okolicy
-              </p>
-            </div>
-          </div>
+          <GoogleMap
+            initiatives={filteredInitiatives}
+            onInitiativeSelect={setSelectedInitiative}
+            selectedInitiative={selectedInitiative}
+            userType={userType}
+          />
 
           <div className="mt-4 flex justify-between items-center">
             <Button
