@@ -1,0 +1,73 @@
+{
+  "name": "System Zarządzania Wolontariatem",
+  "short_name": "Wolontariat",
+  "description": "Mobilna aplikacja do zarządzania wolontariatem dla uczniów, koordynatorów i organizacji",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#030213",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pl",
+  "categories": ["education", "social", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Główny ekran aplikacji na telefonie"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Moje oferty",
+      "short_name": "Oferty",
+      "description": "Szybki dostęp do ofert wolontariackich",
+      "url": "/?shortcut=offers",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mapa inicjatyw",
+      "short_name": "Mapa",
+      "description": "Zobacz oferty w Twojej okolicy",
+      "url": "/?shortcut=map",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "mailto",
+      "url": "/contact?email=%s"
+    }
+  ]
+}

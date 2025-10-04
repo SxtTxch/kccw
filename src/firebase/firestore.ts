@@ -1,0 +1,912 @@
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy,
+  onSnapshot,
+  serverTimestamp 
+} from 'firebase/firestore';
+import { db } from './config';
+
+// Test Firestore connection
+export const testFirestoreConnection = async (): Promise<boolean> => {
+  try {
+    console.log('Testing Firestore connection...');
+    const testCollection = collection(db, 'test');
+    const testDoc = await addDoc(testCollection, { 
+      test: true, 
+      timestamp: serverTimestamp() 
+    });
+    console.log('Firestore connection test successful, created test doc:', testDoc.id);
+    return true;
+  } catch (error) {
+    console.error('Firestore connection test failed:', error);
+    return false;
+  }
+};
+
+// Update user profile with missing fields
+export const updateUserProfileWithMissingFields = async (userId: string, userProfile: UserProfile): Promise<void> => {
+  try {
+    console.log('Checking and updating user profile with missing fields for user:', userId);
+    
+    const updates: Partial<UserProfile> = {};
+    let hasUpdates = false;
+    
+    // Check and add volunteer statistics if missing
+    if (userProfile.volunteerHours === undefined) {
+      updates.volunteerHours = 0;
+      hasUpdates = true;
+    }
+    if (userProfile.totalProjects === undefined) {
+      updates.totalProjects = 0;
+      hasUpdates = true;
+    }
+    if (userProfile.currentStreak === undefined) {
+      updates.currentStreak = 0;
+      hasUpdates = true;
+    }
+    if (userProfile.longestStreak === undefined) {
+      updates.longestStreak = 0;
+      hasUpdates = true;
+    }
+    if (userProfile.impactPoints === undefined) {
+      updates.impactPoints = 0;
+      hasUpdates = true;
+    }
+    if (userProfile.specialAchievements === undefined) {
+      updates.specialAchievements = 0;
+      hasUpdates = true;
+    }
+    
+    // Check and add privacy settings if missing
+    if (!userProfile.privacySettings) {
+      updates.privacySettings = getDefaultPrivacySettings();
+      hasUpdates = true;
+    }
+    
+    // Check and add cookie settings if missing
+    if (!userProfile.cookieSettings) {
+      updates.cookieSettings = getDefaultCookieSettings();
+      hasUpdates = true;
+    }
+    
+    // Check and add badges if missing
+    if (!userProfile.badges) {
+      updates.badges = getDefaultBadges();
+      hasUpdates = true;
+    }
+    
+    // Check and add preferences if missing
+    if (!userProfile.preferences) {
+      updates.preferences = {
+        notifications: true,
+        emailUpdates: true,
+        smsUpdates: false,
+        language: 'pl'
+      };
+      hasUpdates = true;
+    }
+    
+    // Check and add volunteer info if missing (for volunteers)
+    if (userProfile.userType === 'wolontariusz' && !userProfile.volunteerInfo) {
+      updates.volunteerInfo = {
+        skills: [],
+        interests: [],
+        availability: [],
+        experience: ''
+      };
+      hasUpdates = true;
+    }
+    
+    // Check and add coordinator info if missing (for coordinators)
+    if (userProfile.userType === 'koordynator' && !userProfile.coordinatorInfo) {
+      updates.coordinatorInfo = {
+        schoolInfo: {
+          name: userProfile.schoolName || ''
+        }
+      };
+      hasUpdates = true;
+    }
+    
+    // Check and add organization info if missing (for organizations)
+    if (userProfile.userType === 'organizacja' && !userProfile.organizationInfo) {
+      updates.organizationInfo = {
+        organizationName: userProfile.organizationName || '',
+        organizationType: userProfile.organizationType || '',
+        krsNumber: userProfile.krsNumber || '',
+        description: userProfile.bio || ''
+      };
+      hasUpdates = true;
+    }
+    
+    // Update the document if there are missing fields
+    if (hasUpdates) {
+      console.log('Updating user profile with missing fields:', updates);
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        ...updates,
+        updatedAt: serverTimestamp()
+      });
+      console.log('User profile updated successfully with missing fields');
+    } else {
+      console.log('User profile already has all required fields');
+    }
+  } catch (error) {
+    console.error('Error updating user profile with missing fields:', error);
+    throw new Error(`Failed to update user profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+// Update all users with missing fields (migration function)
+export const updateAllUsersWithMissingFields = async (): Promise<void> => {
+  try {
+    console.log('Starting migration: updating all users with missing fields...');
+    
+    const usersCollection = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersCollection);
+    
+    console.log(`Found ${usersSnapshot.docs.length} users to check`);
+    
+    let updatedCount = 0;
+    let errorCount = 0;
+    
+    for (const userDoc of usersSnapshot.docs) {
+      try {
+        const userData = userDoc.data() as UserProfile;
+        const userId = userDoc.id;
+        
+        console.log(`Checking user ${userId} (${userData.email})`);
+        
+        const updates: Partial<UserProfile> = {};
+        let hasUpdates = false;
+        
+        // Check and add volunteer statistics if missing
+        if (userData.volunteerHours === undefined) {
+          updates.volunteerHours = 0;
+          hasUpdates = true;
+        }
+        if (userData.totalProjects === undefined) {
+          updates.totalProjects = 0;
+          hasUpdates = true;
+        }
+        if (userData.currentStreak === undefined) {
+          updates.currentStreak = 0;
+          hasUpdates = true;
+        }
+        if (userData.longestStreak === undefined) {
+          updates.longestStreak = 0;
+          hasUpdates = true;
+        }
+        if (userData.impactPoints === undefined) {
+          updates.impactPoints = 0;
+          hasUpdates = true;
+        }
+        if (userData.specialAchievements === undefined) {
+          updates.specialAchievements = 0;
+          hasUpdates = true;
+        }
+        
+        // Check and add privacy settings if missing
+        if (!userData.privacySettings) {
+          updates.privacySettings = getDefaultPrivacySettings();
+          hasUpdates = true;
+        }
+        
+        // Check and add cookie settings if missing
+        if (!userData.cookieSettings) {
+          updates.cookieSettings = getDefaultCookieSettings();
+          hasUpdates = true;
+        }
+        
+        // Check and add badges if missing
+        if (!userData.badges) {
+          updates.badges = getDefaultBadges();
+          hasUpdates = true;
+        }
+        
+        // Check and add preferences if missing
+        if (!userData.preferences) {
+          updates.preferences = {
+            notifications: true,
+            emailUpdates: true,
+            smsUpdates: false,
+            language: 'pl'
+          };
+          hasUpdates = true;
+        }
+        
+        // Check and add volunteer info if missing (for volunteers)
+        if (userData.userType === 'wolontariusz' && !userData.volunteerInfo) {
+          updates.volunteerInfo = {
+            skills: [],
+            interests: [],
+            availability: [],
+            experience: ''
+          };
+          hasUpdates = true;
+        }
+        
+        // Check and add coordinator info if missing (for coordinators)
+        if (userData.userType === 'koordynator' && !userData.coordinatorInfo) {
+          updates.coordinatorInfo = {
+            schoolInfo: {
+              name: userData.schoolName || ''
+            }
+          };
+          hasUpdates = true;
+        }
+        
+        // Check and add organization info if missing (for organizations)
+        if (userData.userType === 'organizacja' && !userData.organizationInfo) {
+          updates.organizationInfo = {
+            organizationName: userData.organizationName || '',
+            organizationType: userData.organizationType || '',
+            krsNumber: userData.krsNumber || '',
+            description: userData.bio || ''
+          };
+          hasUpdates = true;
+        }
+        
+        // Update the document if there are missing fields
+        if (hasUpdates) {
+          console.log(`Updating user ${userId} with missing fields:`, updates);
+          const userRef = doc(db, 'users', userId);
+          await updateDoc(userRef, {
+            ...updates,
+            updatedAt: serverTimestamp()
+          });
+          updatedCount++;
+          console.log(`Successfully updated user ${userId}`);
+        } else {
+          console.log(`User ${userId} already has all required fields`);
+        }
+        
+      } catch (error) {
+        console.error(`Error updating user ${userDoc.id}:`, error);
+        errorCount++;
+      }
+    }
+    
+    console.log(`Migration completed. Updated ${updatedCount} users, ${errorCount} errors`);
+  } catch (error) {
+    console.error('Error during migration:', error);
+    throw new Error(`Failed to update all users: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+// User types
+export interface UserProfile {
+  id?: string;
+  email: string;
+  userType: 'wolontariusz' | 'koordynator' | 'organizacja';
+  firstName: string;
+  lastName: string;
+  birthDate?: string;
+  schoolName?: string;
+  organizationName?: string;
+  organizationType?: string;
+  krsNumber?: string;
+  address: {
+    street: string;
+    houseNumber: string;
+    postalCode: string;
+    city: string;
+  };
+  // Additional metadata
+  phoneNumber?: string;
+  bio?: string;
+  profileImage?: string;
+  isVerified?: boolean;
+  isActive?: boolean;
+  lastLoginAt?: any;
+  preferences?: {
+    notifications: boolean;
+    emailUpdates: boolean;
+    smsUpdates: boolean;
+    language: string;
+  };
+  // Privacy and data processing consents
+  privacySettings?: {
+    profileVisibility: boolean;
+    locationTracking: boolean;
+    dataAnalytics: boolean;
+    marketingEmails: boolean;
+    notificationsPush: boolean;
+    dataSharing: boolean;
+    cookiesAnalytical: boolean;
+    cookiesMarketing: boolean;
+    lastUpdated: any;
+  };
+  // Cookie preferences and tracking
+  cookieSettings?: {
+    essential: boolean;           // Always true, cannot be disabled
+    analytical: boolean;          // Analytical cookies
+    marketing: boolean;          // Marketing cookies
+    lastUpdated: any;
+  };
+  // Volunteer specific metadata
+  volunteerInfo?: {
+    skills: string[];
+    interests: string[];
+    availability: string[];
+    experience: string;
+    emergencyContact?: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+  };
+  
+  // Coordinator specific metadata
+  coordinatorInfo?: {
+    schoolInfo: {
+      name: string;
+    };
+  };
+  
+  // Organization specific metadata
+  organizationInfo?: {
+    organizationName: string;
+    organizationType: string;
+    krsNumber: string;
+    description: string;
+  };
+  
+  // Volunteer statistics
+  volunteerHours?: number;
+  totalProjects?: number;
+  currentStreak?: number;
+  longestStreak?: number;
+  impactPoints?: number;
+  specialAchievements?: number;
+  
+  // Badge system
+  badges?: {
+    // Welcome badge (automatic on account creation)
+    witaj: {
+      earned: boolean;
+      earnedDate?: any;
+    };
+    // Time-based badges
+    pierwszyKrok: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // hours worked
+      target: number;   // 1 hour
+    };
+    zaangazowany: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // hours worked
+      target: number;   // 10 hours
+    };
+    wytrwaly: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // hours worked
+      target: number;   // 50 hours
+    };
+    bohater: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // hours worked
+      target: number;   // 100 hours
+    };
+    // Project-based badges
+    debiutant: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // projects completed
+      target: number;   // 1 project
+    };
+    aktywny: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // projects completed
+      target: number;   // 5 projects
+    };
+    mistrz: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // projects completed
+      target: number;   // 15 projects
+    };
+    // Consistency badges
+    konsekwentny: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // weeks volunteered
+      target: number;   // 3 weeks
+    };
+    niezdomny: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // weeks volunteered
+      target: number;   // 7 weeks
+    };
+    // Leadership badges
+    mentor: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // training sessions led
+      target: number;   // 1 session
+    };
+    ambasador: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // volunteers recruited
+      target: number;   // 3 volunteers
+    };
+    // Impact badges
+    pomocnik: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // impact points
+      target: number;   // 100 points
+    };
+    zmiana: {
+      earned: boolean;
+      earnedDate?: any;
+      progress: number; // impact points
+      target: number;   // 500 points
+    };
+  };
+  // Coordinator specific metadata
+  coordinatorInfo?: {
+    schoolInfo: {
+      name: string;
+      address: string;
+      phone: string;
+    };
+    department?: string;
+    position?: string;
+  };
+  // Organization specific metadata
+  organizationInfo?: {
+    description?: string;
+    website?: string;
+    socialMedia?: {
+      facebook?: string;
+      instagram?: string;
+      twitter?: string;
+    };
+    contactPerson: {
+      name: string;
+      position: string;
+      phone: string;
+      email: string;
+    };
+  };
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+// Helper function to remove undefined values
+const removeUndefinedValues = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefinedValues);
+  }
+  
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = removeUndefinedValues(value);
+      }
+    }
+    return cleaned;
+  }
+  
+  return obj;
+};
+
+// Create user profile
+export const createUserProfile = async (userData: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    console.log('Creating user profile in Firestore with data:', userData);
+    
+    // Initialize default badges for new users
+    const defaultBadges = getDefaultBadges();
+    
+    // Initialize default statistics for new users
+    const defaultStats = {
+      volunteerHours: 0,
+      totalProjects: 0,
+      currentStreak: 0,
+      longestStreak: 0,
+      impactPoints: 0,
+      specialAchievements: 0
+    };
+    
+    // Remove undefined values before saving to Firestore
+    const cleanedData = removeUndefinedValues({
+      ...userData,
+      badges: defaultBadges,
+      ...defaultStats
+    });
+    console.log('Cleaned data for Firestore:', cleanedData);
+    
+    const docRef = await addDoc(collection(db, 'users'), {
+      ...cleanedData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('User profile created successfully with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+    throw new Error(`Failed to create user profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+// Get user profile by ID
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  const docRef = doc(db, 'users', userId);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as UserProfile;
+  }
+  return null;
+};
+
+// Update user profile
+export const updateUserProfile = async (userId: string, userData: Partial<UserProfile>): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    ...userData,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update user profile by email
+export const updateUserProfileByEmail = async (email: string, userData: Partial<UserProfile>): Promise<void> => {
+  try {
+    console.log('Updating user profile for email:', email);
+    
+    // First, find the user by email
+    const q = query(collection(db, 'users'), where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      throw new Error('User not found with email: ' + email);
+    }
+    
+    const userDoc = querySnapshot.docs[0];
+    const docRef = doc(db, 'users', userDoc.id);
+    
+    // Clean the data before saving
+    const cleanedData = removeUndefinedValues(userData);
+    
+    console.log('Updating user document with ID:', userDoc.id);
+    console.log('Data to update:', cleanedData);
+    
+    await updateDoc(docRef, {
+      ...cleanedData,
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('User profile updated successfully');
+  } catch (error) {
+    console.error('Error updating user profile by email:', error);
+    throw error;
+  }
+};
+
+// Get user profile by email
+export const getUserProfileByEmail = async (email: string): Promise<UserProfile | null> => {
+  try {
+    console.log('Searching for user with email:', email);
+    const q = query(collection(db, 'users'), where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    
+    console.log('Query snapshot size:', querySnapshot.size);
+    
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      const userData = { id: doc.id, ...doc.data() } as UserProfile;
+      console.log('Found user profile:', userData);
+      return userData;
+    }
+    
+    console.log('No user profile found for email:', email);
+    return null;
+  } catch (error) {
+    console.error('Error in getUserProfileByEmail:', error);
+    throw error;
+  }
+};
+
+// Get all users by type
+export const getUsersByType = async (userType: string): Promise<UserProfile[]> => {
+  const q = query(collection(db, 'users'), where('userType', '==', userType));
+  const querySnapshot = await getDocs(q);
+  
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  })) as UserProfile[];
+};
+
+// Listen to user profile changes
+export const listenToUserProfile = (userId: string, callback: (user: UserProfile | null) => void) => {
+  const docRef = doc(db, 'users', userId);
+  return onSnapshot(docRef, (doc) => {
+    if (doc.exists()) {
+      callback({ id: doc.id, ...doc.data() } as UserProfile);
+    } else {
+      callback(null);
+    }
+  });
+};
+
+// Update user preferences
+export const updateUserPreferences = async (userId: string, preferences: UserProfile['preferences']): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    preferences,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update volunteer information
+export const updateVolunteerInfo = async (userId: string, volunteerInfo: UserProfile['volunteerInfo']): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    volunteerInfo,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update coordinator information
+export const updateCoordinatorInfo = async (userId: string, coordinatorInfo: UserProfile['coordinatorInfo']): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    coordinatorInfo,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update organization information
+export const updateOrganizationInfo = async (userId: string, organizationInfo: UserProfile['organizationInfo']): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    organizationInfo,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update user verification status
+export const updateUserVerification = async (userId: string, isVerified: boolean): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    isVerified,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update user activity status
+export const updateUserActivity = async (userId: string, isActive: boolean): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    isActive,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update privacy settings
+export const updatePrivacySettings = async (userId: string, privacySettings: UserProfile['privacySettings']): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    privacySettings: {
+      ...privacySettings,
+      lastUpdated: serverTimestamp()
+    },
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update individual privacy setting
+export const updatePrivacySetting = async (userId: string, setting: keyof UserProfile['privacySettings'], value: boolean): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    [`privacySettings.${setting}`]: value,
+    'privacySettings.lastUpdated': serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Initialize default privacy settings
+export const getDefaultPrivacySettings = (): UserProfile['privacySettings'] => {
+  return {
+    profileVisibility: false,
+    locationTracking: false,
+    dataAnalytics: false,
+    marketingEmails: false,
+    notificationsPush: false,
+    dataSharing: false,
+    cookiesAnalytical: false,
+    cookiesMarketing: false,
+    lastUpdated: new Date()
+  };
+};
+
+// Initialize default cookie settings
+export const getDefaultCookieSettings = (): UserProfile['cookieSettings'] => {
+  return {
+    essential: true,        // Always true, cannot be disabled
+    analytical: false,     // Default to false for privacy
+    marketing: false,       // Default to false for privacy
+    lastUpdated: new Date()
+  };
+};
+
+// Update cookie settings
+export const updateCookieSettings = async (userId: string, cookieSettings: UserProfile['cookieSettings']): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    cookieSettings: {
+      ...cookieSettings,
+      lastUpdated: serverTimestamp()
+    },
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Update individual cookie setting
+export const updateCookieSetting = async (userId: string, setting: keyof UserProfile['cookieSettings'], value: boolean): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  await updateDoc(docRef, {
+    [`cookieSettings.${setting}`]: value,
+    'cookieSettings.lastUpdated': serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Get user statistics
+export const getUserStats = async (): Promise<{
+  totalUsers: number;
+  volunteers: number;
+  coordinators: number;
+  organizations: number;
+  activeUsers: number;
+  verifiedUsers: number;
+}> => {
+  const usersSnapshot = await getDocs(collection(db, 'users'));
+  const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as UserProfile[];
+  
+  return {
+    totalUsers: users.length,
+    volunteers: users.filter(u => u.userType === 'wolontariusz').length,
+    coordinators: users.filter(u => u.userType === 'koordynator').length,
+    organizations: users.filter(u => u.userType === 'organizacja').length,
+    activeUsers: users.filter(u => u.isActive).length,
+    verifiedUsers: users.filter(u => u.isVerified).length
+  };
+};
+
+// Badge system functions
+export const getDefaultBadges = () => {
+  return {
+    witaj: {
+      earned: true,
+      earnedDate: new Date()
+    },
+    pierwszyKrok: {
+      earned: false,
+      progress: 0,
+      target: 1
+    },
+    zaangazowany: {
+      earned: false,
+      progress: 0,
+      target: 10
+    },
+    wytrwaly: {
+      earned: false,
+      progress: 0,
+      target: 50
+    },
+    bohater: {
+      earned: false,
+      progress: 0,
+      target: 100
+    },
+    debiutant: {
+      earned: false,
+      progress: 0,
+      target: 1
+    },
+    aktywny: {
+      earned: false,
+      progress: 0,
+      target: 5
+    },
+    mistrz: {
+      earned: false,
+      progress: 0,
+      target: 15
+    },
+    konsekwentny: {
+      earned: false,
+      progress: 0,
+      target: 3
+    },
+    niezdomny: {
+      earned: false,
+      progress: 0,
+      target: 7
+    },
+    mentor: {
+      earned: false,
+      progress: 0,
+      target: 1
+    },
+    ambasador: {
+      earned: false,
+      progress: 0,
+      target: 3
+    },
+    pomocnik: {
+      earned: false,
+      progress: 0,
+      target: 100
+    },
+    zmiana: {
+      earned: false,
+      progress: 0,
+      target: 500
+    }
+  };
+};
+
+// Update badge progress
+export const updateBadgeProgress = async (userId: string, badgeType: string, progress: number): Promise<void> => {
+  const docRef = doc(db, 'users', userId);
+  const badgePath = `badges.${badgeType}.progress`;
+  
+  await updateDoc(docRef, {
+    [badgePath]: progress,
+    updatedAt: serverTimestamp()
+  });
+};
+
+// Check and award badge if earned
+export const checkAndAwardBadge = async (userId: string, badgeType: string): Promise<boolean> => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) return false;
+    
+    const userData = userDoc.data() as UserProfile;
+    const badge = userData.badges?.[badgeType as keyof typeof userData.badges];
+    
+    if (!badge || badge.earned) return false;
+    
+    if (badge.progress >= badge.target) {
+      const docRef = doc(db, 'users', userId);
+      await updateDoc(docRef, {
+        [`badges.${badgeType}.earned`]: true,
+        [`badges.${badgeType}.earnedDate`]: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking badge:', error);
+    return false;
+  }
+};
