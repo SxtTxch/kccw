@@ -5,7 +5,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Krakowskie Serce</title>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNX5U-nlxxUcbvF61Gj6tkMssIdBmBmCg&libraries=places"></script>
+    <script>
+      // Global callback for Google Maps
+      window.initMap = function() {
+        // This will be overridden by the React component
+        console.log('Google Maps loaded');
+      };
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmVW69-bZkZ4atEYHSLZg5TMIjJc1Fsyw&libraries=places&callback=initMap&v=3.56" crossorigin="anonymous"></script>
   </head>
 
     <body>
