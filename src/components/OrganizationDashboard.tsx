@@ -1161,19 +1161,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <h3 className="mb-2">Statystyki</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Zgłoszenia:</span>
-                    <div className="font-medium">{selectedOffer.appliedVolunteers}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Zaakceptowani:</span>
-                    <div className="font-medium text-green-600">{selectedOffer.acceptedVolunteers}</div>
-                  </div>
-                </div>
-              </div>
 
               <div className="flex gap-3 pt-4">
                 <Button
@@ -1831,17 +1818,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                   <CardContent className="pt-0">
                     <p className="text-sm mb-3">{offer.description}</p>
                     
-                    <div className="flex justify-between items-center mb-3 text-sm">
-                      <span className="text-muted-foreground">Zgłoszenia:</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                          {offer.appliedVolunteers} nowych
-                        </Badge>
-                        <Badge variant="outline" className="bg-green-50 text-green-700">
-                          {offer.acceptedVolunteers} zaakceptowanych
-                        </Badge>
-                      </div>
-                    </div>
                     
                     <div className="flex gap-2">
                       <Button 
