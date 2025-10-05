@@ -1952,7 +1952,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                       {offer.hasBounty && offer.bountyAmount && (
                         <div className="mb-2">
                           <span className="inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-md border font-medium">
-                            💰 Nagroda: {offer.bountyAmount} PLN
+                            💰 Bounty: {offer.bountyAmount} PLN
                           </span>
                         </div>
                       )}
@@ -2930,39 +2930,37 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       {/* Delete Confirmation Modal */}
       {showDeleteModal && offerToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="h-5 w-5 text-red-600" />
+          <div className="bg-white rounded-lg w-full max-w-sm p-6 shadow-lg">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="h-8 w-8 text-red-600" />
               </div>
-              <div>
-                <h3 className="text-lg font-semibold">Usuń ofertę</h3>
-                <p className="text-sm text-muted-foreground">Ta akcja jest nieodwracalna</p>
-              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Usuń ofertę</h3>
+              <p className="text-sm text-gray-600 mb-4">Ta akcja jest nieodwracalna</p>
             </div>
             
             <div className="mb-6">
-              <p className="text-sm text-muted-foreground mb-2">Czy na pewno chcesz usunąć ofertę:</p>
-              <p className="font-medium">{offerToDelete.title}</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm text-gray-700 mb-2">Czy na pewno chcesz usunąć ofertę:</p>
+              <p className="font-medium text-gray-900 text-center p-3 bg-gray-50 rounded-md">{offerToDelete.title}</p>
+              <p className="text-xs text-gray-500 mt-2 text-center">
                 Wszystkie zgłoszenia do tej oferty również zostaną usunięte.
               </p>
             </div>
             
-            <div className="flex gap-3 w-full">
-              <Button
-                variant="outline"
-                onClick={cancelDeleteOffer}
-                className="flex-1 min-w-0"
-              >
-                Anuluj
-              </Button>
+            <div className="flex flex-col gap-3">
               <Button
                 onClick={confirmDeleteOffer}
-                className="flex-1 min-w-0 bg-red-600 hover:bg-red-700"
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-3"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Usuń ofertę
+              </Button>
+              <Button
+                variant="outline"
+                onClick={cancelDeleteOffer}
+                className="w-full py-3"
+              >
+                Anuluj
               </Button>
             </div>
           </div>
