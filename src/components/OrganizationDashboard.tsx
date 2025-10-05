@@ -525,7 +525,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     description: "",
     requirements: "",
     startDate: "",
-    endDate: "",
     duration: "",
     maxVolunteers: "",
     contactEmail: user.email,
@@ -656,7 +655,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         category: newOfferData.category,
         location: "Kraków",
         startDate: newOfferData.startDate,
-        endDate: newOfferData.endDate,
+        endDate: newOfferData.startDate,
         maxParticipants: parseInt(newOfferData.maxVolunteers) || 0,
         requirements: newOfferData.requirements ? newOfferData.requirements.split(',').map(r => r.trim()) : [],
         benefits: [], // Can be added later
@@ -686,7 +685,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
           description: "",
           requirements: "",
           startDate: "",
-          endDate: "",
           duration: "",
           maxVolunteers: "",
           contactEmail: user.email,
@@ -711,7 +709,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       description: "",
       requirements: "",
       startDate: "",
-      endDate: "",
       duration: "",
       maxVolunteers: "",
       contactEmail: user.email,
@@ -940,27 +937,15 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               </div>
 
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">Data rozpoczęcia *</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={newOfferData.startDate}
-                    onChange={(e) => handleOfferInputChange("startDate", e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endDate">Data zakończenia</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={newOfferData.endDate}
-                    onChange={(e) => handleOfferInputChange("endDate", e.target.value)}
-                    className="h-12"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="eventDate">Data wydarzenia *</Label>
+                <Input
+                  id="eventDate"
+                  type="date"
+                  value={newOfferData.startDate}
+                  onChange={(e) => handleOfferInputChange("startDate", e.target.value)}
+                  className="h-12"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1273,27 +1258,15 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               </div>
 
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="editStartDate">Data rozpoczęcia *</Label>
-                  <Input
-                    id="editStartDate"
-                    type="date"
-                    value={editOfferData.startDate || ''}
-                    onChange={(e) => handleEditOfferInputChange("startDate", e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editEndDate">Data zakończenia</Label>
-                  <Input
-                    id="editEndDate"
-                    type="date"
-                    value={editOfferData.endDate || ''}
-                    onChange={(e) => handleEditOfferInputChange("endDate", e.target.value)}
-                    className="h-12"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="editEventDate">Data wydarzenia *</Label>
+                <Input
+                  id="editEventDate"
+                  type="date"
+                  value={editOfferData.startDate || ''}
+                  onChange={(e) => handleEditOfferInputChange("startDate", e.target.value)}
+                  className="h-12"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
