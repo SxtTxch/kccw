@@ -423,7 +423,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
         
         // Convert to Organization interface format
         const organizationsData: Organization[] = organizationUsers.map((user, index) => ({
-          id: parseInt(user.id || '0') || index + 1,
+          id: user.id, // Use actual Firebase user ID instead of synthetic ID
           name: user.organizationName || user.firstName + ' ' + user.lastName,
           type: user.organizationType || 'Organizacja',
           contactPerson: user.organizationName || user.firstName + ' ' + user.lastName,
@@ -932,8 +932,9 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                     <div className="flex gap-2">
                       <ChatButton 
                         contact={{
-                          id: org.id + 2000,
+                          id: org.id, // Use actual Firebase user ID
                           name: org.contactPerson,
+                          email: org.email,
                           role: "Przedstawiciel organizacji",
                           organization: org.name,
                           isOnline: org.status === 'active',
