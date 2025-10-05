@@ -1114,7 +1114,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{selectedOffer.duration}</span>
+                  <span>{(selectedOffer as any).duration || 'Nie określono'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -1122,7 +1122,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  <span>{selectedOffer.acceptedVolunteers}/{selectedOffer.maxVolunteers}</span>
+                  <span>{selectedOffer.currentParticipants}/{selectedOffer.maxParticipants}</span>
                 </div>
               </div>
 
@@ -1780,7 +1780,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {offer.duration}
+                        {(offer as any).duration || 'Nie określono'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
@@ -1788,7 +1788,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        {offer.acceptedVolunteers}/{offer.maxVolunteers}
+                        {offer.currentParticipants}/{offer.maxParticipants}
                       </div>
                     </div>
                   </CardHeader>
