@@ -703,6 +703,29 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
     setIsEditingProfile(false);
   };
 
+  // Handle student certificate approval/rejection
+  const handleStudentCertificateApproval = async (studentId: string, approved: boolean) => {
+    try {
+      const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../firebase/config');
+      
+      const studentRef = doc(db, 'users', studentId);
+      await updateDoc(studentRef, {
+        certificateStatus: approved ? 'approved' : 'rejected',
+        certificateProcessedAt: serverTimestamp(),
+        certificateProcessedBy: userProfile?.id
+      });
+
+      // Refresh students data
+      const updatedStudents = await getStudentsBySchool(userProfile?.schoolName || '');
+      setStudents(updatedStudents);
+      
+      console.log(`Certificate ${approved ? 'approved' : 'rejected'} for student ${studentId}`);
+    } catch (error) {
+      console.error('Error updating student certificate status:', error);
+    }
+  };
+
   // Certificate application management
   const handleCertificateApproval = async (applicationId: string, approved: boolean, rejectionReason?: string) => {
     try {
@@ -950,6 +973,23 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             Brak zgody rodziców
                           </Badge>
                         )}
+                        {/* Certificate Status for Minors */}
+                        {student.isMinor && (
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${
+                              student.certificateStatus === 'approved' ? 'bg-green-50 text-green-700' :
+                              student.certificateStatus === 'rejected' ? 'bg-red-50 text-red-700' :
+                              student.certificateStatus === 'pending' ? 'bg-yellow-50 text-yellow-700' :
+                              'bg-gray-50 text-gray-700'
+                            }`}
+                          >
+                            {student.certificateStatus === 'approved' ? 'Zaświadczenie zatwierdzone' :
+                             student.certificateStatus === 'rejected' ? 'Zaświadczenie odrzucone' :
+                             student.certificateStatus === 'pending' ? 'Oczekuje na zaświadczenie' :
+                             'Brak zaświadczenia'}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     
@@ -963,6 +1003,68 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                         <Eye className="h-4 w-4 mr-2" />
                         Szczegóły
                       </Button>
+                      
+                      {/* Certificate Management for Minors */}
+                      {student.isMinor && (
+                        <>
+                          {student.certificateStatus === 'pending' && (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="bg-green-50 text-green-700 hover:bg-green-100"
+                                onClick={() => handleStudentCertificateApproval(student.id, true)}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Zatwierdź
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="bg-red-50 text-red-700 hover:bg-red-100"
+                                onClick={() => handleStudentCertificateApproval(student.id, false)}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Odrzuć
+                              </Button>
+                            </>
+                          )}
+                          {student.certificateStatus === 'approved' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="bg-red-50 text-red-700 hover:bg-red-100"
+                              onClick={() => handleStudentCertificateApproval(student.id, false)}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Cofnij
+                            </Button>
+                          )}
+                          {student.certificateStatus === 'rejected' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="bg-green-50 text-green-700 hover:bg-green-100"
+                              onClick={() => handleStudentCertificateApproval(student.id, true)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Zatwierdź
+                            </Button>
+                          )}
+                          {!student.certificateStatus && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="bg-gray-50 text-gray-700"
+                              disabled
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Oczekuje na zaświadczenie
+                            </Button>
+                          )}
+                        </>
+                      )}
+                      
                       <ChatButton 
                         contact={{
                           id: student.id,
