@@ -176,59 +176,6 @@ interface OrganizationMember {
   phone?: string;
 }
 
-const mockOffers: Offer[] = [
-  {
-    id: 1,
-    title: "Opieka nad zwierzętami w schronisku",
-    category: "Opieka nad zwierzętami",
-    description: "Pomoc w codziennej opiece nad zwierzętami w schronisku - karmienie, spacery, sprzątanie.",
-    requirements: ["Miłość do zwierząt", "Brak alergii", "Gotowość do pracy fizycznej"],
-    location: "Warszawa, Mokotów",
-    startDate: "2024-11-01",
-    endDate: "2024-12-15",
-    duration: "3-4 godziny",
-    maxParticipants: 8,
-    appliedVolunteers: 12,
-    acceptedVolunteers: 6,
-    status: 'published',
-    urgency: 'medium',
-    createdDate: "2024-10-01"
-  },
-  {
-    id: 2,
-    title: "Pakowanie paczek świątecznych",
-    category: "Pomoc społeczna",
-    description: "Przygotowywanie i pakowanie paczek żywnościowych dla rodzin w potrzebie.",
-    requirements: ["Dokładność", "Praca w zespole", "Dyspozycyjność w weekendy"],
-    location: "Warszawa, Centrum",
-    startDate: "2024-12-15",
-    endDate: "2024-12-24",
-    duration: "4-6 godzin",
-    maxParticipants: 15,
-    appliedVolunteers: 20,
-    acceptedVolunteers: 12,
-    status: 'published',
-    urgency: 'high',
-    createdDate: "2024-10-15"
-  },
-  {
-    id: 3,
-    title: "Zajęcia komputerowe dla seniorów",
-    category: "Edukacja",
-    description: "Prowadzenie zajęć komputerowych dla osób starszych - podstawy obsługi komputera i internetu.",
-    requirements: ["Znajomość komputera", "Cierpliwość", "Umiejętności komunikacyjne"],
-    location: "Warszawa, Praga",
-    startDate: "2024-11-10",
-    endDate: "2024-12-10",
-    duration: "2 godziny",
-    maxParticipants: 4,
-    appliedVolunteers: 6,
-    acceptedVolunteers: 3,
-    status: 'in-progress',
-    urgency: 'low',
-    createdDate: "2024-09-20"
-  }
-];
 
 const mockVolunteers: Volunteer[] = [
   {
