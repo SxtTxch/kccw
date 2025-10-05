@@ -71,9 +71,6 @@ export const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({ classN
   };
 
   const getButtonVariant = () => {
-    if (deleteStep === 'confirming') {
-      return 'destructive';
-    }
     return 'outline';
   };
 
@@ -82,11 +79,7 @@ export const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({ classN
       onClick={handleDeleteClick}
       variant={getButtonVariant()}
       disabled={isDeleting}
-      className={`${className} ${
-        deleteStep === 'confirming' 
-          ? 'bg-red-600 hover:bg-red-700 text-white' 
-          : 'border-red-500 text-red-500 hover:bg-red-50'
-      }`}
+      className={`${className} border-red-500 text-red-500`}
     >
       <Trash2 className="h-4 w-4 mr-2" />
       {getButtonText()}
