@@ -697,14 +697,18 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
 
   const pendingCertificates = certificates.filter(cert => cert.status === 'pending');
 
-  // Statistics
+  // Statistics - all connected to real Firebase data
   const stats = {
     totalStudents: students.length,
     activeStudents: students.filter(s => (s.status || 'active') === 'active' || s.isActive).length,
     totalHours: students.reduce((sum, s) => sum + (s.volunteerHours || 0), 0),
     pendingCertificates: pendingCertificates.length,
     activeOrganizations: organizations.filter(o => o.status === 'active').length,
-    activeProjects: projects.filter(p => p.status === 'open' || p.status === 'in-progress').length
+    activeProjects: offers.filter(o => o.status === 'active').length, // Use real offers instead of mock projects
+    totalOffers: offers.length,
+    completedProjects: students.reduce((sum, s) => sum + (s.totalProjects || 0), 0),
+    averageRating: students.length > 0 ? 
+      students.reduce((sum, s) => sum + (s.ratings?.averageRating || 0), 0) / students.length : 0
   };
 
   return (
@@ -1322,12 +1326,12 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                       <Card>
                         <CardContent className="p-3 text-center">
                           <div className="text-2xl font-semibold text-green-600">{stats.activeProjects}</div>
-                          <div className="text-xs text-muted-foreground">Aktywne projekty</div>
+                          <div className="text-xs text-muted-foreground">Aktywne oferty</div>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardContent className="p-3 text-center">
-                          <div className="text-2xl font-semibold text-purple-600">{stats.totalHours}</div>
+                          <div className="text-2xl font-semibold text-purple-600">{formatNumber(stats.totalHours)}</div>
                           <div className="text-xs text-muted-foreground">Łączne godziny</div>
                         </CardContent>
                       </Card>
@@ -1335,6 +1339,18 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                         <CardContent className="p-3 text-center">
                           <div className="text-2xl font-semibold text-orange-600">{stats.activeOrganizations}</div>
                           <div className="text-xs text-muted-foreground">Organizacje</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-3 text-center">
+                          <div className="text-2xl font-semibold text-cyan-600">{stats.completedProjects}</div>
+                          <div className="text-xs text-muted-foreground">Ukończone projekty</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-3 text-center">
+                          <div className="text-2xl font-semibold text-pink-600">{stats.totalOffers}</div>
+                          <div className="text-xs text-muted-foreground">Wszystkie oferty</div>
                         </CardContent>
                       </Card>
                     </div>
