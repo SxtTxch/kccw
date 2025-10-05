@@ -528,7 +528,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     duration: "",
     maxVolunteers: "",
     contactEmail: user.email,
-    contactPhone: "",
     bountyAmount: "",
     hasBounty: false
   });
@@ -660,7 +659,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         requirements: newOfferData.requirements ? newOfferData.requirements.split(',').map(r => r.trim()) : [],
         benefits: [], // Can be added later
         contactEmail: newOfferData.contactEmail,
-        contactPhone: newOfferData.contactPhone || '',
         status: 'active' as const,
         urgency: 'medium' as const,
         // Bounty system fields
@@ -688,7 +686,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
           duration: "",
           maxVolunteers: "",
           contactEmail: user.email,
-          contactPhone: "",
           bountyAmount: "",
           hasBounty: false
         });
@@ -984,17 +981,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone">Telefon kontaktowy</Label>
-                <Input
-                  id="contactPhone"
-                  type="tel"
-                  placeholder="+48 123 456 789"
-                  value={newOfferData.contactPhone}
-                  onChange={(e) => handleOfferInputChange("contactPhone", e.target.value)}
-                  className="h-12"
-                />
-              </div>
 
               {/* Bounty System Section */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-4">
