@@ -30,11 +30,6 @@ interface CertificateApplicationData {
   studentName: string;
   studentEmail: string;
   schoolName: string;
-  projectTitle: string;
-  projectDescription: string;
-  volunteerHours: number;
-  startDate: string;
-  endDate: string;
   supervisorName: string;
   supervisorContact: string;
   achievements: string;
@@ -54,11 +49,6 @@ export const CertificateApplication: React.FC<CertificateApplicationProps> = ({
     studentName: `${userProfile.firstName} ${userProfile.lastName}`,
     studentEmail: userProfile.email,
     schoolName: userProfile.schoolName || '',
-    projectTitle: '',
-    projectDescription: '',
-    volunteerHours: userProfile.volunteerHours || 0,
-    startDate: '',
-    endDate: '',
     supervisorName: '',
     supervisorContact: '',
     achievements: '',
@@ -92,12 +82,8 @@ export const CertificateApplication: React.FC<CertificateApplicationProps> = ({
 
     try {
       // Validate required fields
-      if (!formData.projectTitle || !formData.projectDescription || !formData.startDate || !formData.endDate) {
+      if (!formData.supervisorName || !formData.supervisorContact) {
         throw new Error('Wszystkie pola są wymagane');
-      }
-
-      if (formData.volunteerHours < 1) {
-        throw new Error('Liczba godzin wolontariatu musi być większa niż 0');
       }
 
       // Create certificate application
@@ -106,11 +92,6 @@ export const CertificateApplication: React.FC<CertificateApplicationProps> = ({
         studentName: formData.studentName,
         studentEmail: formData.studentEmail,
         schoolName: formData.schoolName,
-        projectTitle: formData.projectTitle,
-        projectDescription: formData.projectDescription,
-        volunteerHours: formData.volunteerHours,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
         supervisorName: formData.supervisorName,
         supervisorContact: formData.supervisorContact,
         achievements: formData.achievements,
@@ -215,67 +196,6 @@ export const CertificateApplication: React.FC<CertificateApplicationProps> = ({
             </div>
           </div>
 
-          {/* Project Information */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Award className="h-4 w-4" />
-              Informacje o projekcie
-            </h4>
-            <div>
-              <Label htmlFor="projectTitle">Tytuł projektu *</Label>
-              <Input
-                id="projectTitle"
-                value={formData.projectTitle}
-                onChange={(e) => setFormData(prev => ({ ...prev, projectTitle: e.target.value }))}
-                placeholder="Np. Pomoc w schronisku dla zwierząt"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="projectDescription">Opis projektu *</Label>
-              <Textarea
-                id="projectDescription"
-                value={formData.projectDescription}
-                onChange={(e) => setFormData(prev => ({ ...prev, projectDescription: e.target.value }))}
-                placeholder="Opisz szczegółowo, co robiłeś podczas wolontariatu..."
-                rows={4}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="volunteerHours">Liczba godzin *</Label>
-                <Input
-                  id="volunteerHours"
-                  type="number"
-                  min="1"
-                  value={formData.volunteerHours}
-                  onChange={(e) => setFormData(prev => ({ ...prev, volunteerHours: parseInt(e.target.value) || 0 }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="startDate">Data rozpoczęcia *</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="endDate">Data zakończenia *</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Supervisor Information */}
           <div className="space-y-4">
