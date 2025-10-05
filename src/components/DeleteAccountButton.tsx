@@ -45,13 +45,12 @@ export const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({ classN
           // Account deleted successfully, user will be redirected automatically
           console.log('Account deleted successfully');
         } else {
-          alert('Nie udało się usunąć konta. Spróbuj ponownie.');
+          console.error('Failed to delete account');
           setDeleteStep('initial');
           setIsDeleting(false);
         }
       } catch (error) {
         console.error('Error deleting account:', error);
-        alert('Wystąpił błąd podczas usuwania konta. Spróbuj ponownie.');
         setDeleteStep('initial');
         setIsDeleting(false);
       }
@@ -61,13 +60,13 @@ export const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({ classN
   const getButtonText = () => {
     switch (deleteStep) {
       case 'initial':
-        return 'Usuń konto';
+        return 'Usuń konto trwale';
       case 'confirming':
-        return 'Na pewno?';
+        return 'Czy jesteś pewien?';
       case 'deleting':
         return 'Usuwanie...';
       default:
-        return 'Usuń konto';
+        return 'Usuń konto trwale';
     }
   };
 
