@@ -50,7 +50,7 @@ import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { CertificateApplication } from "./CertificateApplication";
 import MyApplications from "./MyApplications";
-import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge, getUserOffers, getOfferById } from "../firebase/firestore";
+import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge, getUserOffers, getOfferById, deleteUserApplication } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import { useChat } from "../contexts/ChatContext";
 import { RatingComments } from "./RatingComments";
@@ -1088,14 +1088,33 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
         return;
       }
 
-      const success = await cancelOfferSignup(offerId, userProfile.id);
-      if (success) {
-        console.log("Successfully canceled offer application");
+      // First, get the user's applications to find the application ID
+      const userApplications = await getUserOffers(userProfile.id);
+      const application = userApplications.find((app: any) => app.offerId === offerId);
+      
+      if (!application) {
+        console.log("Application not found for this offer");
+        return;
+      }
+
+      console.log("Found application to cancel:", application);
+
+      // Cancel the offer signup (remove from offer's participants)
+      const cancelSuccess = await cancelOfferSignup(offerId, userProfile.id);
+      if (!cancelSuccess) {
+        console.log("Failed to cancel offer signup - user may not have been in offer participants");
+      }
+
+      // Remove from user's applications
+      const deleteSuccess = await deleteUserApplication(userProfile.id, application.id);
+      
+      if (deleteSuccess) {
+        console.log("Successfully canceled offer application and removed from user applications");
         // Refresh offers to update the UI
         const updatedOffers = await getAllOffers();
         setOffers(updatedOffers);
       } else {
-        console.log("Failed to cancel offer application");
+        console.log("Failed to delete user application");
       }
     } catch (error) {
       console.error('Error canceling offer:', error);
