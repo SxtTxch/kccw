@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { updatePrivacySetting, getDefaultPrivacySettings, updateCookieSetting, getDefaultCookieSettings } from "../firebase/firestore";
 import { cookieManager } from "../utils/cookieManager";
 import { DataManagement } from "./DataManagement";
+import { DeleteAccountButton } from "./DeleteAccountButton";
 import { 
   Shield, 
   Lock, 
@@ -172,11 +173,6 @@ export function PrivacySettings({ userType }: PrivacySettingsProps) {
   };
 
 
-  const deleteAccount = () => {
-    if (confirm("Czy na pewno chcesz usunąć swoje konto? Ta operacja jest nieodwracalna.")) {
-      alert("Proces usuwania konta został rozpoczęty. Otrzymasz email z potwierdzeniem.");
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -466,14 +462,7 @@ export function PrivacySettings({ userType }: PrivacySettingsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button 
-            variant="destructive" 
-            className="w-full"
-            onClick={deleteAccount}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Usuń konto trwale
-          </Button>
+          <DeleteAccountButton className="w-full" />
           <p className="text-xs text-muted-foreground mt-2">
             Usunięcie konta spowoduje trwałe usunięcie wszystkich Twoich danych. 
             Ta operacja nie może zostać cofnięta.
