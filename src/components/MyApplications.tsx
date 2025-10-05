@@ -160,9 +160,20 @@ const MyApplications = ({ onApplicationChange, onNavigateToOffers }: MyApplicati
       // Remove from user's applications
       const deleteSuccess = await deleteUserApplication(userProfile.id, applicationId);
       if (deleteSuccess) {
-        // Refresh applications
-        const updatedApplications = await getUserOffers(userProfile.id);
-        setApplications(updatedApplications);
+        console.log('Successfully deleted application from user document');
+        
+        // Immediately update local state to remove the application
+        setApplications(prev => prev.filter((app: any) => app.id !== applicationId));
+        
+        // Also refresh from database to ensure consistency
+        try {
+          const updatedApplications = await getUserOffers(userProfile.id);
+          console.log('Refreshed applications from database:', updatedApplications);
+          setApplications(updatedApplications);
+        } catch (error) {
+          console.error('Error refreshing applications:', error);
+        }
+        
         setShowDeleteConfirm(false);
         setApplicationToDelete(null);
         console.log('Successfully canceled application and offer signup');
