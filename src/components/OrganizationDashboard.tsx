@@ -524,7 +524,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     category: "",
     description: "",
     requirements: "",
-    location: "",
     startDate: "",
     endDate: "",
     duration: "",
@@ -655,7 +654,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         organization: user.organizationName,
         organizationId: user.id.toString(),
         category: newOfferData.category,
-        location: newOfferData.location,
+        location: "Kraków",
         startDate: newOfferData.startDate,
         endDate: newOfferData.endDate,
         maxParticipants: parseInt(newOfferData.maxVolunteers) || 0,
@@ -686,7 +685,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
           category: "",
           description: "",
           requirements: "",
-          location: "",
           startDate: "",
           endDate: "",
           duration: "",
@@ -712,7 +710,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       category: "",
       description: "",
       requirements: "",
-      location: "",
       startDate: "",
       endDate: "",
       duration: "",
@@ -942,16 +939,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="location">Lokalizacja *</Label>
-                <Input
-                  id="location"
-                  placeholder="np. Warszawa, Mokotów"
-                  value={newOfferData.location}
-                  onChange={(e) => handleOfferInputChange("location", e.target.value)}
-                  className="h-12"
-                />
-              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -1079,7 +1066,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 <Button
                   onClick={submitOffer}
                   className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90"
-                  disabled={!newOfferData.title || !newOfferData.category || !newOfferData.description || !newOfferData.location || !newOfferData.startDate || (newOfferData.hasBounty && !newOfferData.bountyAmount)}
+                  disabled={!newOfferData.title || !newOfferData.category || !newOfferData.description || !newOfferData.startDate || (newOfferData.hasBounty && !newOfferData.bountyAmount)}
                 >
                   Utwórz ofertę
                 </Button>
@@ -1285,16 +1272,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="editLocation">Lokalizacja *</Label>
-                <Input
-                  id="editLocation"
-                  placeholder="np. Warszawa, Mokotów"
-                  value={editOfferData.location || ''}
-                  onChange={(e) => handleEditOfferInputChange("location", e.target.value)}
-                  className="h-12"
-                />
-              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
