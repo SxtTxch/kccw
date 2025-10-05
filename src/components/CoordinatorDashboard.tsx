@@ -1382,7 +1382,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
             )}
 
             {/* Skills and Experience */}
-            {(currentUser.skills?.length || currentUser.achievements?.length) && (
+            {((currentUser.skills?.length || 0) > 0 || (currentUser.achievements?.length || 0) > 0) && (
               <Card className="mb-4">
                 <CardContent className="p-4 space-y-4">
                   {currentUser.skills?.length > 0 && (

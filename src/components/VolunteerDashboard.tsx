@@ -1699,7 +1699,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             )}
 
             {/* Skills and Interests */}
-            {(currentUser.skills?.length || currentUser.interests?.length || currentUser.achievements?.length) && (
+            {((currentUser.skills?.length || 0) > 0 || (currentUser.interests?.length || 0) > 0 || (currentUser.achievements?.length || 0) > 0) && (
               <Card className="mb-4">
                 <CardContent className="p-4 space-y-4">
                   {currentUser.skills?.length > 0 && (
