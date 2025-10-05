@@ -1916,14 +1916,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         <CardTitle className="text-lg mb-1">{offer.title}</CardTitle>
                         <CardDescription className="mb-2">{offer.category}</CardDescription>
                       </div>
-                      <div className="flex flex-col items-end gap-3">
-                        <Badge className={`${getOfferStatusColor(offer.status)} ${offer.status === 'active' ? 'ml-2' : ''}`}>
-                          {getOfferStatusLabel(offer.status)}
-                        </Badge>
-                        <Badge className={`${getUrgencyColor(offer.urgency)} border text-xs`}>
-                          {offer.urgency === 'high' ? 'Pilne' : offer.urgency === 'medium' ? 'Średnie' : 'Niskie'}
-                        </Badge>
-                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
@@ -1943,6 +1935,15 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         <Users className="h-4 w-4" />
                         {offer.currentParticipants}/{offer.maxParticipants}
                       </div>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-3">
+                      <Badge className={`${getOfferStatusColor(offer.status)} ${offer.status === 'active' ? 'ml-2' : ''}`}>
+                        {getOfferStatusLabel(offer.status)}
+                      </Badge>
+                      <Badge className={`${getUrgencyColor(offer.urgency)} border text-xs`}>
+                        {offer.urgency === 'high' ? 'Pilne' : offer.urgency === 'medium' ? 'Średnie' : 'Niskie'}
+                      </Badge>
                     </div>
                   </CardHeader>
                   
