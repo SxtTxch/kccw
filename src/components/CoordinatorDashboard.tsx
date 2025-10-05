@@ -1612,31 +1612,93 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
+                          {/* Active Students Percentage */}
                           <div className="flex justify-between items-center">
                             <span className="text-sm">Aktywni uczniowie</span>
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-2 bg-gray-200 rounded-full">
-                                <div className="w-3/4 h-2 bg-blue-500 rounded-full"></div>
+                                <div 
+                                  className="h-2 bg-blue-500 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${stats.totalStudents > 0 ? (stats.activeStudents / stats.totalStudents) * 100 : 0}%` 
+                                  }}
+                                ></div>
                               </div>
-                              <span className="text-sm text-muted-foreground">75%</span>
+                              <span className="text-sm text-muted-foreground">
+                                {stats.totalStudents > 0 ? Math.round((stats.activeStudents / stats.totalStudents) * 100) : 0}%
+                              </span>
                             </div>
                           </div>
+                          
+                          {/* Goal Achievement - based on completed projects vs total offers */}
                           <div className="flex justify-between items-center">
                             <span className="text-sm">Realizacja celów</span>
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-2 bg-gray-200 rounded-full">
-                                <div className="w-4/5 h-2 bg-green-500 rounded-full"></div>
+                                <div 
+                                  className="h-2 bg-green-500 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${stats.totalOffers > 0 ? Math.min((stats.completedProjects / stats.totalOffers) * 100, 100) : 0}%` 
+                                  }}
+                                ></div>
                               </div>
-                              <span className="text-sm text-muted-foreground">80%</span>
+                              <span className="text-sm text-muted-foreground">
+                                {stats.totalOffers > 0 ? Math.round(Math.min((stats.completedProjects / stats.totalOffers) * 100, 100)) : 0}%
+                              </span>
                             </div>
                           </div>
+                          
+                          {/* Organization Collaboration - based on active organizations */}
                           <div className="flex justify-between items-center">
                             <span className="text-sm">Współpraca z organizacjami</span>
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-2 bg-gray-200 rounded-full">
-                                <div className="w-2/3 h-2 bg-purple-500 rounded-full"></div>
+                                <div 
+                                  className="h-2 bg-purple-500 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${stats.activeOrganizations > 0 ? Math.min((stats.activeOrganizations / Math.max(stats.activeOrganizations, 5)) * 100, 100) : 0}%` 
+                                  }}
+                                ></div>
                               </div>
-                              <span className="text-sm text-muted-foreground">67%</span>
+                              <span className="text-sm text-muted-foreground">
+                                {stats.activeOrganizations > 0 ? Math.round(Math.min((stats.activeOrganizations / Math.max(stats.activeOrganizations, 5)) * 100, 100)) : 0}%
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Volunteer Hours Growth */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Godziny wolontariatu</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-2 bg-gray-200 rounded-full">
+                                <div 
+                                  className="h-2 bg-orange-500 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${stats.totalHours > 0 ? Math.min((stats.totalHours / 1000) * 100, 100) : 0}%` 
+                                  }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-muted-foreground">
+                                {formatNumber(stats.totalHours)}h
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Average Rating */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Średnia ocena</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-2 bg-gray-200 rounded-full">
+                                <div 
+                                  className="h-2 bg-yellow-500 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${stats.averageRating > 0 ? (stats.averageRating / 5) * 100 : 0}%` 
+                                  }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-muted-foreground">
+                                {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '0.0'}/5.0
+                              </span>
                             </div>
                           </div>
                         </div>
