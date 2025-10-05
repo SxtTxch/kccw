@@ -40,7 +40,8 @@ import {
   Star,
   Map,
   Shield,
-  Target
+  Target,
+  X
 } from "lucide-react";
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
@@ -370,7 +371,8 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [projects] = useState<Project[]>(mockProjects);
   const [certificates] = useState<Certificate[]>(mockCertificates);
-  const [calendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [loadingCalendarEvents, setLoadingCalendarEvents] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState(user);
@@ -423,7 +425,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
         
         // Convert to Organization interface format
         const organizationsData: Organization[] = organizationUsers.map((user, index) => ({
-          id: user.id, // Use actual Firebase user ID instead of synthetic ID
+          id: parseInt(user.id || '0') || index + 1, // Convert to number for Organization interface
           name: user.organizationName || user.firstName + ' ' + user.lastName,
           type: user.organizationType || 'Organizacja',
           contactPerson: user.organizationName || user.firstName + ' ' + user.lastName,
@@ -467,6 +469,45 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
     fetchOffers();
   }, []);
 
+  // Fetch calendar events from Firebase
+  useEffect(() => {
+    const fetchCalendarEvents = async () => {
+      try {
+        setLoadingCalendarEvents(true);
+        const { collection, getDocs } = await import('firebase/firestore');
+        const { db } = await import('../firebase/config');
+        
+        const eventsRef = collection(db, 'calendarEvents');
+        const querySnapshot = await getDocs(eventsRef);
+        
+        const events: CalendarEvent[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          events.push({
+            id: parseInt(doc.id) || Math.random(),
+            title: data.title,
+            date: data.date,
+            time: data.time,
+            type: data.type || 'event',
+            description: data.description,
+            attendees: data.attendees || [],
+            location: data.location,
+            status: data.status || 'scheduled'
+          });
+        });
+        
+        console.log('Fetched calendar events:', events);
+        setCalendarEvents(events);
+      } catch (error) {
+        console.error('Error fetching calendar events:', error);
+      } finally {
+        setLoadingCalendarEvents(false);
+      }
+    };
+
+    fetchCalendarEvents();
+  }, []);
+
   // Helper functions
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -484,20 +525,17 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
 
   // Get offers for a specific date
   const getOffersForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD format in local timezone
     return offers.filter(offer => {
-      const offerDate = new Date(offer.startDate).toISOString().split('T')[0];
+      const offerDate = new Date(offer.startDate).toLocaleDateString('en-CA');
       return offerDate === dateStr;
     });
   };
 
   // Handle calendar date click
   const handleCalendarDateClick = (date: Date) => {
-    const offersForDate = getOffersForDate(date);
-    if (offersForDate.length > 0) {
-      setSelectedOffer(offersForDate[0]);
-      setShowOfferModal(true);
-    }
+    setSelectedDate(date);
+    // Events will be displayed below calendar automatically
   };
 
   const getStudentStatusColor = (status: string) => {
@@ -571,16 +609,49 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
     return calendarEvents.filter(event => event.date === dateStr);
   };
 
-  // Get upcoming events (next 7 days)
+  // Get upcoming events (next 7 days) from offers and calendar events
   const getUpcomingEvents = () => {
     const today = new Date();
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
     
-    return calendarEvents
+    // Get upcoming offers
+    const upcomingOffers = offers
+      .filter(offer => {
+        const offerDate = new Date(offer.startDate);
+        return offerDate >= today && offerDate <= nextWeek;
+      })
+      .map(offer => ({
+        id: offer.id,
+        title: offer.title,
+        date: offer.startDate,
+        time: '09:00', // Default time for offers
+        type: 'offer' as const,
+        description: offer.description,
+        location: offer.location,
+        organization: offer.organization,
+        participants: offer.currentParticipants,
+        maxParticipants: offer.maxParticipants
+      }));
+    
+    // Get upcoming calendar events
+    const upcomingCalendarEvents = calendarEvents
       .filter(event => {
         const eventDate = new Date(event.date);
         return eventDate >= today && eventDate <= nextWeek;
       })
+      .map(event => ({
+        id: event.id.toString(),
+        title: event.title,
+        date: event.date,
+        time: event.time,
+        type: event.type,
+        description: event.description,
+        location: event.location,
+        attendees: event.attendees
+      }));
+    
+    // Combine and sort by date
+    return [...upcomingOffers, ...upcomingCalendarEvents]
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
 
@@ -932,7 +1003,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                     <div className="flex gap-2">
                       <ChatButton 
                         contact={{
-                          id: org.id, // Use actual Firebase user ID
+                          id: org.id.toString(), // Convert to string for ChatContact
                           name: org.contactPerson,
                           email: org.email,
                           role: "Przedstawiciel organizacji",
@@ -983,10 +1054,10 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                     {getUpcomingEvents().map(event => (
                       <div key={event.id} className="p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm">{event.title}</h4>
-                          <Badge className={`${getEventTypeColor(event.type)} border text-xs`}>
-                            {event.type === 'meeting' ? 'Spotkanie' : 
-                             event.type === 'deadline' ? 'Termin' :
+                          <h4 className="text-sm font-medium">{event.title}</h4>
+                          <Badge className={`${event.type === 'offer' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-green-100 text-green-800 border-green-200'} text-xs`}>
+                            {event.type === 'offer' ? 'Oferta' : 
+                             event.type === 'meeting' ? 'Spotkanie' : 
                              event.type === 'training' ? 'Szkolenie' : 'Wydarzenie'}
                           </Badge>
                         </div>
@@ -1006,7 +1077,23 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                               {event.location}
                             </span>
                           )}
+                          {event.type === 'offer' && (event as any).participants !== undefined && (
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {(event as any).participants}/{(event as any).maxParticipants} osób
+                            </span>
+                          )}
                         </div>
+                        {event.type === 'offer' && (event as any).organization && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            <span className="font-medium">Organizacja:</span> {(event as any).organization}
+                          </div>
+                        )}
+                        {event.type !== 'offer' && (event as any).attendees && (event as any).attendees.length > 0 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            <span className="font-medium">Uczestnicy:</span> {(event as any).attendees.join(', ')}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1582,7 +1669,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                   onClick={() => setShowOfferModal(false)}
                   className="h-8 w-8 p-0"
                 >
-                  <XIcon className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
               
