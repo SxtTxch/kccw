@@ -957,7 +957,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   };
 
   // Volunteer view handlers
-  const handleViewVolunteerProfile = (volunteer: any) => {
+  const handleViewTeamVolunteerProfile = (volunteer: any) => {
     setSelectedVolunteer(volunteer);
     setVolunteerView('profile');
   };
@@ -2214,7 +2214,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         className="text-sm flex-1"
                       />
                       <Button 
-                        onClick={() => handleViewVolunteerProfile(volunteer)}
+                        onClick={() => handleViewTeamVolunteerProfile(volunteer)}
                         variant="outline" 
                         size="sm"
                       >
