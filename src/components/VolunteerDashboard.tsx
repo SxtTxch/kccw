@@ -1400,18 +1400,18 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
               >
                 <X className="h-4 w-4 mr-2" />
                 Anuluj zgłoszenie
-              </Button>
-            ) : (
-              <Button 
+            </Button>
+          ) : (
+            <Button 
                 onClick={() => {
                   console.log('Button clicked - userProfile:', userProfile?.id, 'offer participants:', offer.participants, 'is full:', offer.currentParticipants >= offer.maxParticipants);
                   handleApplyToOffer(offer.id);
                 }}
-                className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90"
+              className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90"
                 disabled={offer.currentParticipants >= offer.maxParticipants || offer.maxParticipants === 0}
-              >
+            >
                 {offer.maxParticipants === 0 ? 'Brak miejsc' : 'Zgłoś się'}
-              </Button>
+            </Button>
             );
           })()}
           <ChatButton 
@@ -1484,9 +1484,9 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             >
               <MessageCircle className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onLogout}>
-              <LogOut className="h-5 w-5" />
-            </Button>
+          <Button variant="ghost" size="icon" onClick={onLogout}>
+            <LogOut className="h-5 w-5" />
+          </Button>
           </div>
         </div>
       </div>
@@ -2038,8 +2038,8 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                                   )}
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
+                      </CardContent>
+                    </Card>
                         );
                       } else {
                         // For rejected, pending, or no certificate - show the form

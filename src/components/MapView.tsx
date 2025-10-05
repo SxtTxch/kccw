@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -205,201 +205,34 @@ export function MapView({ userType }: MapViewProps) {
   const [selectedInitiative, setSelectedInitiative] = useState(null);
   const [showList, setShowList] = useState(false);
   
-  // Route creation state
-  const [isCreatingRoute, setIsCreatingRoute] = useState(false);
-  const [routeStartPoint, setRouteStartPoint] = useState<{lat: number, lng: number} | null>(null);
-  const [routeEndPoint, setRouteEndPoint] = useState<{lat: number, lng: number} | null>(null);
-  const [routeMarkers, setRouteMarkers] = useState<any[]>([]);
-  const [routeDirections, setRouteDirections] = useState<any>(null);
-  const [routes, setRoutes] = useState<Route[]>([]);
-  const mapRef = useRef<any>(null);
+  // Simple marker state
+  const [markers, setMarkers] = useState<any[]>([]);
 
-  // Debug state changes
-  useEffect(() => {
-    console.log('State changed:', { isCreatingRoute, routeStartPoint, routeEndPoint });
-  }, [isCreatingRoute, routeStartPoint, routeEndPoint]);
-
-  // Route creation functions
-  const startRouteCreation = () => {
-    console.log('Starting route creation...');
-    setIsCreatingRoute(true);
-    setRouteStartPoint(null);
-    setRouteEndPoint(null);
-    // Clear existing markers
-    routeMarkers.forEach(marker => marker.setMap(null));
-    setRouteMarkers([]);
-    if (routeDirections) {
-      routeDirections.setMap(null);
-      setRouteDirections(null);
-    }
-    console.log('Route creation mode activated');
-  };
-
-  const cancelRouteCreation = () => {
-    setIsCreatingRoute(false);
-    setRouteStartPoint(null);
-    setRouteEndPoint(null);
-    // Clear markers
-    routeMarkers.forEach(marker => marker.setMap(null));
-    setRouteMarkers([]);
-    if (routeDirections) {
-      routeDirections.setMap(null);
-      setRouteDirections(null);
-    }
-  };
-
+  // Simple map click handler
   const handleMapClick = (event: any, map: any) => {
-    console.log('Map clicked!', { isCreatingRoute, routeStartPoint, routeEndPoint });
+    console.log('Map clicked!');
     
-    if (!isCreatingRoute) {
-      console.log('Not in route creation mode');
-      return;
-    }
-
     const latLng = event.latLng;
     const lat = latLng.lat();
     const lng = latLng.lng();
 
     console.log('Click coordinates:', { lat, lng });
 
-    if (!routeStartPoint) {
-      console.log('Setting start point');
-      // Set start point
-      setRouteStartPoint({ lat, lng });
-      addMarker(map, lat, lng, 'A', '#4CAF50');
-    } else if (!routeEndPoint) {
-      console.log('Setting end point');
-      // Set end point
-      setRouteEndPoint({ lat, lng });
-      addMarker(map, lat, lng, 'B', '#F44336');
-      // Calculate route
-      calculateRoute(map);
-    }
+    // Add a simple marker
+    addMarker(map, lat, lng);
   };
 
-  const addMarker = (map: any, lat: number, lng: number, label: string, color: string) => {
-    console.log('Adding marker:', { lat, lng, label, color });
+  const addMarker = (map: any, lat: number, lng: number) => {
+    console.log('Adding marker:', { lat, lng });
     
-    // Create a custom marker using traditional Marker with custom icon
     const marker = new (window as any).google.maps.Marker({
       position: { lat, lng },
       map: map,
-      label: {
-        text: label,
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: '16px'
-      },
-      icon: {
-        path: (window as any).google.maps.SymbolPath.CIRCLE,
-        scale: 20,
-        fillColor: color,
-        fillOpacity: 1,
-        strokeColor: 'white',
-        strokeWeight: 3
-      }
+      title: `Marker at ${lat.toFixed(4)}, ${lng.toFixed(4)}`
     });
     
     console.log('Marker created:', marker);
-    setRouteMarkers(prev => [...prev, marker]);
-  };
-
-  const calculateRoute = (map: any) => {
-    if (!routeStartPoint || !routeEndPoint) return;
-
-    const directionsService = new (window as any).google.maps.DirectionsService();
-    const directionsRenderer = new (window as any).google.maps.DirectionsRenderer({
-      suppressMarkers: true, // We have our own markers
-      polylineOptions: {
-        strokeColor: '#2196F3',
-        strokeWeight: 4
-      }
-    });
-
-    directionsRenderer.setMap(map);
-
-    directionsService.route({
-      origin: routeStartPoint,
-      destination: routeEndPoint,
-      travelMode: (window as any).google.maps.TravelMode.DRIVING
-    }, (result: any, status: any) => {
-      if (status === 'OK') {
-        directionsRenderer.setDirections(result);
-        setRouteDirections(directionsRenderer);
-      } else {
-        console.error('Directions request failed:', status);
-      }
-    });
-  };
-
-  const saveRoute = async () => {
-    if (!routeStartPoint || !routeEndPoint) return;
-
-    // Get addresses using reverse geocoding
-    const geocoder = new (window as any).google.maps.Geocoder();
-    
-    const startAddress = await new Promise((resolve) => {
-      geocoder.geocode({ location: routeStartPoint }, (results: any, status: any) => {
-        if (status === 'OK' && results[0]) {
-          resolve(results[0].formatted_address);
-        } else {
-          resolve('Unknown address');
-        }
-      });
-    });
-
-    const endAddress = await new Promise((resolve) => {
-      geocoder.geocode({ location: routeEndPoint }, (results: any, status: any) => {
-        if (status === 'OK' && results[0]) {
-          resolve(results[0].formatted_address);
-        } else {
-          resolve('Unknown address');
-        }
-      });
-    });
-
-    // Calculate distance and duration
-    const distance = calculateDistance(routeStartPoint.lat, routeStartPoint.lng, routeEndPoint.lat, routeEndPoint.lng);
-    const duration = Math.round(distance * 1.5); // Rough estimate: 1.5 minutes per km
-
-    const newRoute: Route = {
-      id: Date.now().toString(),
-      ownerId: 'current-user-id', // This should come from auth context
-      ownerName: 'Current User', // This should come from auth context
-      startPoint: {
-        lat: routeStartPoint.lat,
-        lng: routeStartPoint.lng,
-        address: startAddress as string
-      },
-      endPoint: {
-        lat: routeEndPoint.lat,
-        lng: routeEndPoint.lng,
-        address: endAddress as string
-      },
-      distance: `${distance.toFixed(1)} km`,
-      duration: `${duration} min`,
-      createdAt: new Date(),
-      isActive: true
-    };
-
-    // Save to Firestore (you'll need to implement this)
-    // await saveRouteToFirestore(newRoute);
-    
-    setRoutes(prev => [...prev, newRoute]);
-    setIsCreatingRoute(false);
-    setRouteStartPoint(null);
-    setRouteEndPoint(null);
-  };
-
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    setMarkers(prev => [...prev, marker]);
   };
 
   // Google Maps implementation
@@ -428,7 +261,6 @@ export function MapView({ userType }: MapViewProps) {
       };
 
       const map = new (window as any).google.maps.Map(mapElement, options);
-      mapRef.current = map;
 
       // Add bounds restriction after map is initialized
       try {
@@ -674,44 +506,23 @@ export function MapView({ userType }: MapViewProps) {
               </button>
             </div>
 
-            {/* Route Creation Controls */}
+            {/* Simple Marker Controls */}
             <div className="space-y-3">
-              {!isCreatingRoute ? (
-                <Button onClick={() => {
-                  console.log('Dodaj Trasę button clicked!');
-                  startRouteCreation();
-                }} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Dodaj Trasę
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {!routeStartPoint ? 'Kliknij na mapie aby wybrać punkt A' : 
-                       !routeEndPoint ? 'Kliknij na mapie aby wybrać punkt B' : 
-                       'Trasa gotowa do zapisania'}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={saveRoute} 
-                      disabled={!routeStartPoint || !routeEndPoint}
-                      className="flex-1"
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      Zapisz Trasę
-                    </Button>
-                    <Button 
-                      onClick={cancelRouteCreation} 
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      Anuluj
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Button 
+                onClick={() => {
+                  console.log('Clearing all markers');
+                  markers.forEach(marker => marker.setMap(null));
+                  setMarkers([]);
+                }} 
+                variant="outline" 
+                className="w-full"
+              >
+                <Target className="h-4 w-4 mr-2" />
+                Wyczyść markery
+              </Button>
+              <p className="text-sm text-muted-foreground text-center">
+                Kliknij na mapie aby dodać marker
+              </p>
             </div>
 
             {/* Map Info */}
@@ -738,53 +549,6 @@ export function MapView({ userType }: MapViewProps) {
         </CardContent>
       </Card>
 
-      {/* Saved Routes */}
-      {routes.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Route className="h-5 w-5" />
-              Moje Trasy
-            </CardTitle>
-            <CardDescription>
-              Trasy które dodałeś do systemu
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {routes.map((route) => (
-                <div key={route.id} className="border rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-medium">Punkt A</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Punkt B</span>
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <div className="flex justify-between">
-                      <span>Od: {route.startPoint.address}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Do: {route.endPoint.address}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Dystans: {route.distance}</span>
-                      <span>Czas: {route.duration}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Dodano: {route.createdAt.toLocaleDateString('pl-PL')}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Selected Initiative Details */}
       {selectedInitiative && (
