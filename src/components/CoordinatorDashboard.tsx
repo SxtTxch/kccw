@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -47,6 +47,8 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { StudentProfile } from "./StudentProfile";
+import { getStudentsBySchool } from "../firebase/firestore";
+import { useAuth } from "../contexts/AuthContext";
 
 interface User {
   id: number;
@@ -390,10 +392,11 @@ const mockCalendarEvents: CalendarEvent[] = [
 ];
 
 export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardProps) {
+  const { userProfile } = useAuth();
   const [activeTab, setActiveTab] = useState("students");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [students] = useState<Student[]>(mockStudents);
+  const [students, setStudents] = useState<any[]>([]);
   const [organizations] = useState<Organization[]>(mockOrganizations);
   const [projects] = useState<Project[]>(mockProjects);
   const [certificates] = useState<Certificate[]>(mockCertificates);
@@ -402,14 +405,58 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState(user);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch students from Firebase
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!userProfile?.schoolName) {
+        console.log('No school name found for coordinator');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const studentsData = await getStudentsBySchool(userProfile.schoolName);
+        setStudents(studentsData);
+        console.log('Fetched students:', studentsData);
+        console.log('First student data structure:', studentsData[0]);
+        console.log('Student volunteer hours field:', (studentsData[0] as any)?.volunteerHours);
+        console.log('Student total projects field:', (studentsData[0] as any)?.totalProjects);
+        console.log('All student fields:', Object.keys(studentsData[0] || {}));
+        console.log('Student data sample:', {
+          volunteerHours: (studentsData[0] as any)?.volunteerHours,
+          totalProjects: (studentsData[0] as any)?.totalProjects,
+          firstName: (studentsData[0] as any)?.firstName,
+          lastName: (studentsData[0] as any)?.lastName
+        });
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [userProfile?.schoolName]);
 
   // Helper functions
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace('.0', '') + ' mil';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace('.0', '') + 'k';
+    }
+    return num.toString();
+  };
+
   const getStudentStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800 border-green-200';
+      case 'inactive': return 'bg-red-100 text-red-800 border-red-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -506,8 +553,9 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   // Filtered data
   const filteredStudents = students.filter(student => {
     const matchesSearch = `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.class.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = selectedFilter === "all" || student.status === selectedFilter;
+                         (student.schoolName && student.schoolName.toLowerCase().includes(searchQuery.toLowerCase()));
+    const studentStatus = student.status || 'active';
+    const matchesFilter = selectedFilter === "all" || studentStatus === selectedFilter || (selectedFilter === "active" && (studentStatus === 'active' || student.isActive));
     return matchesSearch && matchesFilter;
   });
 
@@ -523,8 +571,8 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   // Statistics
   const stats = {
     totalStudents: students.length,
-    activeStudents: students.filter(s => s.status === 'active').length,
-    totalHours: students.reduce((sum, s) => sum + s.volunteerHours, 0),
+    activeStudents: students.filter(s => (s.status || 'active') === 'active' || s.isActive).length,
+    totalHours: students.reduce((sum, s) => sum + (s.volunteerHours || 0), 0),
     pendingCertificates: pendingCertificates.length,
     activeOrganizations: organizations.filter(o => o.status === 'active').length,
     activeProjects: projects.filter(p => p.status === 'open' || p.status === 'in-progress').length
@@ -562,17 +610,11 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-1 gap-3 mb-4">
               <Card>
                 <CardContent className="p-3 text-center">
-                  <div className="text-2xl font-semibold text-blue-600">{stats.activeStudents}</div>
-                  <div className="text-xs text-muted-foreground">Aktywni uczniowie</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <div className="text-2xl font-semibold text-green-600">{stats.totalHours}</div>
-                  <div className="text-xs text-muted-foreground">Przepracowane godziny</div>
+                  <div className="text-2xl font-semibold text-blue-600">{formatNumber(stats.activeStudents)}</div>
+                  <div className="text-xs text-muted-foreground">{stats.activeStudents === 1 ? 'Aktywny uczeń' : stats.activeStudents === 0 || stats.activeStudents >= 5 ? 'Aktywnych uczniów' : 'Aktywni uczniowie'}</div>
                 </CardContent>
               </Card>
             </div>
@@ -604,7 +646,14 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
             </Card>
 
             {/* Students List */}
-            {filteredStudents.length > 0 ? (
+            {loading ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-600 mt-2">Ładowanie uczniów...</p>
+                </CardContent>
+              </Card>
+            ) : filteredStudents.length > 0 ? (
               filteredStudents.map(student => (
                 <Card key={student.id} className="border-l-4 border-l-blue-500">
                   <CardHeader className="pb-3">
@@ -615,30 +664,31 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                         </CardTitle>
                         <CardDescription className="flex items-center gap-1 mb-2">
                           <School className="h-4 w-4" />
-                          Klasa {student.class}
+                          {student.schoolName || 'Brak informacji o szkole'}
                         </CardDescription>
                       </div>
-                      <Badge className={`${getStudentStatusColor(student.status)}`}>
-                        {getStudentStatusLabel(student.status)}
+                      <Badge className={`${getStudentStatusColor(student.status || 'active')} border flex items-center gap-1`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          (student.status || 'active') === 'active' ? 'bg-green-500' :
+                          (student.status || 'active') === 'pending' ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}></div>
+                        {getStudentStatusLabel(student.status || 'active')}
                       </Badge>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                    <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {student.volunteerHours}h
+                        {formatNumber(student.volunteerHours || 0)} godzin
                       </div>
                       <div className="flex items-center gap-1">
                         <Building2 className="h-4 w-4" />
-                        {student.activeProjects} aktywne
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Award className="h-4 w-4" />
-                        {student.completedProjects} ukończone
+                        {formatNumber(student.totalProjects || 0)} {(student.totalProjects || 0) === 1 ? 'projekt' : (student.totalProjects || 0) === 0 || (student.totalProjects || 0) >= 5 ? 'projektów' : 'projekty'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {new Date(student.lastActivity).toLocaleDateString('pl-PL')}
+                        {student.birthDate ? new Date(student.birthDate).toLocaleDateString('pl-PL') : 'Brak danych'}
                       </div>
                     </div>
                   </CardHeader>
@@ -649,10 +699,10 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <span>{student.email}</span>
                       </div>
-                      {student.phone && (
+                      {student.phoneNumber && (
                         <div className="flex items-center gap-2 text-sm mt-1">
                           <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span>{student.phone}</span>
+                          <span>{student.phoneNumber}</span>
                         </div>
                       )}
                       

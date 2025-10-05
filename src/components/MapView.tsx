@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { GoogleMap } from "./GoogleMap";
+// Google Maps will be implemented directly in this component
 import { 
   MapPin, 
   Navigation, 
@@ -182,6 +182,101 @@ export function MapView({ userType }: MapViewProps) {
   const [selectedInitiative, setSelectedInitiative] = useState(null);
   const [showList, setShowList] = useState(false);
 
+  // Google Maps implementation
+  useEffect(() => {
+    // Ensure the map div exists before initializing
+    const initMap = () => {
+      const mapElement = document.getElementById("map");
+      if (!mapElement) {
+        console.error("Map element not found");
+        return;
+      }
+
+      const options = {
+        center: { lat: 50.0647, lng: 19.9450 }, // Krakow coordinates
+        zoom: 12,
+        gestureHandling: 'greedy', 
+        scrollwheel: true, 
+        disableDoubleClickZoom: false, 
+        zoomControl: false, // Remove +/- zoom controls
+        mapTypeControl: false, // Remove map/satellite switch
+        scaleControl: false, // Remove scale control
+        streetViewControl: false, // Remove street view
+        rotateControl: false, // Remove rotate button
+        fullscreenControl: true, // Keep fullscreen button
+        panControl: false // Remove navigation arrows (4 arrows)
+      };
+
+      const map = new (window as any).google.maps.Map(mapElement, options);
+
+      // Add keyboard navigation support for accessibility
+      mapElement.setAttribute('tabindex', '0');
+      mapElement.setAttribute('role', 'application');
+      mapElement.setAttribute('aria-label', 'Mapa inicjatyw wolontariackich w Krakowie');
+      
+      // Add keyboard event listeners for accessibility
+      mapElement.addEventListener('keydown', (event: KeyboardEvent) => {
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        
+        switch(event.key) {
+          case 'ArrowUp':
+            event.preventDefault();
+            map.panBy(0, -50);
+            break;
+          case 'ArrowDown':
+            event.preventDefault();
+            map.panBy(0, 50);
+            break;
+          case 'ArrowLeft':
+            event.preventDefault();
+            map.panBy(-50, 0);
+            break;
+          case 'ArrowRight':
+            event.preventDefault();
+            map.panBy(50, 0);
+            break;
+          case '+':
+          case '=':
+            event.preventDefault();
+            map.setZoom(zoom + 1);
+            break;
+          case '-':
+            event.preventDefault();
+            map.setZoom(zoom - 1);
+            break;
+          case 'Home':
+            event.preventDefault();
+            map.setCenter({ lat: 50.0647, lng: 19.9450 });
+            map.setZoom(12);
+            break;
+        }
+      });
+
+      (window as any).google.maps.event.addListener(map, "click", (event: any) => {
+        console.log(event.latLng);
+      });
+    };
+
+    // Set up the global initMap function
+    (window as any).initMap = initMap;
+
+    // Load Google Maps script
+    const script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCmVW69-bZkZ4atEYHSLZg5TMIjJc1Fsyw&libraries=places&callback=initMap';
+    script.async = true;
+    script.defer = true;
+    script.crossOrigin = 'anonymous';
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup
+      if ((window as any).initMap) {
+        (window as any).initMap = undefined;
+      }
+    };
+  }, []);
+
   const categories = [
     "Opieka nad zwierzętami",
     "Pomoc społeczna", 
@@ -291,10 +386,45 @@ export function MapView({ userType }: MapViewProps) {
         <CardContent className="p-4">
           <div className="space-y-4">
             {/* Google Maps Component */}
-            <GoogleMap 
-              initiatives={filteredInitiatives}
-              onInitiativeSelect={setSelectedInitiative}
-            />
+            <div className="relative">
+              <div id="map" style={{ width: '100%', height: '400px' }}></div>
+              
+              {/* Accessibility Button */}
+              <button
+                className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                onClick={() => {
+                  // Announce current map state to screen readers
+                  const announcement = document.createElement('div');
+                  announcement.setAttribute('aria-live', 'polite');
+                  announcement.setAttribute('aria-atomic', 'true');
+                  announcement.className = 'sr-only';
+                  announcement.textContent = 'Mapa inicjatyw wolontariackich. Centrum: Kraków. Zoom: 12. Użyj kółka myszy do przybliżania, podwójnego kliknięcia do zoom, przeciągnij aby przesunąć mapę.';
+                  document.body.appendChild(announcement);
+                  
+                  // Remove after announcement
+                  setTimeout(() => {
+                    document.body.removeChild(announcement);
+                  }, 3000);
+                }}
+                aria-label="Informacje o dostępności mapy"
+                title="Informacje o dostępności mapy"
+              >
+                <svg 
+                  className="w-5 h-5" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" 
+                  />
+                </svg>
+              </button>
+            </div>
 
             {/* Map Info */}
             <div className="text-center">

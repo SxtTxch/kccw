@@ -59,6 +59,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
           
           setUserProfile(profile);
+          // Store user ID and name in localStorage for chat functionality
+          if (profile?.id) {
+            localStorage.setItem('currentUserId', profile.id);
+            localStorage.setItem('currentUserName', profile.firstName + ' ' + profile.lastName);
+          }
         } catch (error) {
           console.error('Error fetching user profile:', error);
           setUserProfile(null);

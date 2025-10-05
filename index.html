@@ -5,14 +5,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Krakowskie Serce</title>
-    <script>
-      // Global callback for Google Maps
+    <!-- <script>
       window.initMap = function() {
-        // This will be overridden by the React component
-        console.log('Google Maps loaded');
+        const map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 40.7128, lng: -74.0060 }, // New York
+        zoom: 10,
+        mapTypeId: "roadmap",
+  });
       };
+      function initMap(){
+
+        var options = {
+            center: {lat: 38.3460 , lng:-0.4907 },
+            zoom: 10
+        }
+
+        map = new google.maps.Map(document.getElementById("map"),options)
+
+        google.maps.event.addListener(map, "click", (event) => {
+            addMarker({location:event.latLng});
+        })
+      }
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmVW69-bZkZ4atEYHSLZg5TMIjJc1Fsyw&libraries=places&callback=initMap" crossorigin="anonymous"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmVW69-bZkZ4atEYHSLZg5TMIjJc1Fsyw&libraries=places&callback=initMap" crossorigin="any" defer></script> -->
   </head>
 
     <body>

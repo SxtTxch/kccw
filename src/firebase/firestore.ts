@@ -4,6 +4,7 @@ import {
   getDoc, 
   getDocs, 
   addDoc, 
+  setDoc,
   updateDoc, 
   deleteDoc, 
   query, 
@@ -12,7 +13,9 @@ import {
   onSnapshot,
   serverTimestamp,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  writeBatch,
+  deleteField
 } from 'firebase/firestore';
 import { db } from './config';
 
@@ -460,9 +463,46 @@ export interface UserProfile {
       target: number;   // 500 points
     };
   };
-  createdAt?: any;
-  updatedAt?: any;
+  
+  // Rating system for volunteers
+  ratings?: {
+    averageRating: number; // Float value (0.0 - 5.0)
+    totalRatings: number;
+    ratingComments: RatingComment[];
+  };
+  
+      // Opinions received by this user
+      receivedOpinions?: {
+        totalOpinions: number;
+        opinions: RatingComment[];
+      };
+      
+      // User offers (applications to volunteer opportunities)
+      offers?: {
+        id: string;
+        offerId: string;
+        offerTitle: string;
+        organizationName: string;
+        status: 'pending' | 'accepted' | 'rejected';
+        appliedAt: any;
+        rejectionMessage?: string | null;
+      }[];
+      
+      createdAt?: any;
+      updatedAt?: any;
 }
+
+// Rating comment interface
+export interface RatingComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorBadges: string[]; // Array of badge names the author has earned
+  comment: string;
+  rating: number; // 1-5 stars
+  createdAt: any;
+}
+
 
 // Helper function to remove undefined values
 const removeUndefinedValues = (obj: any): any => {
@@ -968,9 +1008,9 @@ export const getOfferById = async (offerId: string): Promise<Offer | null> => {
 };
 
 // Sign up for an offer
-export const signUpForOffer = async (offerId: string, userId: string): Promise<boolean> => {
+export const signUpForOffer = async (offerId: string, firestoreUserId: string): Promise<boolean> => {
   try {
-    console.log(`Signing up user ${userId} for offer ${offerId}`);
+    console.log(`Signing up user ${firestoreUserId} for offer ${offerId}`);
     
     const offerRef = doc(db, 'offers', offerId);
     const offerSnap = await getDoc(offerRef);
@@ -983,7 +1023,7 @@ export const signUpForOffer = async (offerId: string, userId: string): Promise<b
     const offerData = offerSnap.data() as Offer;
     
     // Check if user is already signed up
-    if (offerData.participants.includes(userId)) {
+    if (offerData.participants.includes(firestoreUserId)) {
       console.log('User already signed up for this offer');
       return false;
     }
@@ -994,9 +1034,37 @@ export const signUpForOffer = async (offerId: string, userId: string): Promise<b
       return false;
     }
     
-    // Add user to participants
+    // First, add application to user's offers (this can fail safely)
+    const userRef = doc(db, 'users', firestoreUserId);
+    const applicationData = {
+      id: Date.now().toString(), // Generate unique ID
+      offerId: offerId,
+      offerTitle: offerData.title,
+      organizationName: offerData.organization,
+      status: 'pending' as 'pending' | 'accepted' | 'rejected',
+      appliedAt: new Date(),
+      rejectionMessage: null as string | null
+    };
+
+    // Check if user document exists, if not create it
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      console.log('User document does not exist, creating it...');
+      await setDoc(userRef, {
+        offers: [applicationData],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      await updateDoc(userRef, {
+        offers: arrayUnion(applicationData),
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    // Only after successfully adding to user, add to offer participants
     await updateDoc(offerRef, {
-      participants: arrayUnion(userId),
+      participants: arrayUnion(firestoreUserId),
       currentParticipants: offerData.currentParticipants + 1,
       updatedAt: serverTimestamp()
     });
@@ -1010,9 +1078,9 @@ export const signUpForOffer = async (offerId: string, userId: string): Promise<b
 };
 
 // Cancel signup for an offer
-export const cancelOfferSignup = async (offerId: string, userId: string): Promise<boolean> => {
+export const cancelOfferSignup = async (offerId: string, firestoreUserId: string): Promise<boolean> => {
   try {
-    console.log(`Canceling signup for user ${userId} from offer ${offerId}`);
+    console.log(`Canceling signup for user ${firestoreUserId} from offer ${offerId}`);
     
     const offerRef = doc(db, 'offers', offerId);
     const offerSnap = await getDoc(offerRef);
@@ -1025,14 +1093,14 @@ export const cancelOfferSignup = async (offerId: string, userId: string): Promis
     const offerData = offerSnap.data() as Offer;
     
     // Check if user is signed up
-    if (!offerData.participants.includes(userId)) {
+    if (!offerData.participants.includes(firestoreUserId)) {
       console.log('User is not signed up for this offer');
       return false;
     }
     
     // Remove user from participants
     await updateDoc(offerRef, {
-      participants: arrayRemove(userId),
+      participants: arrayRemove(firestoreUserId),
       currentParticipants: offerData.currentParticipants - 1,
       updatedAt: serverTimestamp()
     });
@@ -1049,7 +1117,7 @@ export const cancelOfferSignup = async (offerId: string, userId: string): Promis
 export const createOffer = async (offerData: Omit<Offer, 'id' | 'createdAt' | 'updatedAt' | 'participants' | 'currentParticipants'>): Promise<string | null> => {
   try {
     console.log('Creating new offer:', offerData.title);
-    
+
     const offersRef = collection(db, 'offers');
     const newOffer = await addDoc(offersRef, {
       ...offerData,
@@ -1058,7 +1126,7 @@ export const createOffer = async (offerData: Omit<Offer, 'id' | 'createdAt' | 'u
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    
+
     console.log('Offer created with ID:', newOffer.id);
     return newOffer.id;
   } catch (error) {
@@ -1066,3 +1134,303 @@ export const createOffer = async (offerData: Omit<Offer, 'id' | 'createdAt' | 'u
     return null;
   }
 };
+
+// Rating system functions
+export const addVolunteerRating = async (volunteerId: string, ratingData: Omit<RatingComment, 'id' | 'createdAt'>): Promise<boolean> => {
+  try {
+    console.log('Adding rating for volunteer:', volunteerId, 'by:', ratingData.authorId);
+
+    const userRef = doc(db, 'users', volunteerId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      console.error('Volunteer not found');
+      return false;
+    }
+
+    const userData = userSnap.data() as UserProfile;
+    const currentRatings = userData.ratings || {
+      averageRating: 0,
+      totalRatings: 0,
+      ratingComments: []
+    };
+
+    // Create new rating comment
+    const newRatingComment: RatingComment = {
+      id: Date.now().toString(),
+      ...ratingData,
+      createdAt: serverTimestamp()
+    };
+
+    // Add to comments array
+    const updatedComments = [...currentRatings.ratingComments, newRatingComment];
+
+    // Calculate new average rating
+    const totalRatingSum = updatedComments.reduce((sum, comment) => sum + comment.rating, 0);
+    const newAverageRating = totalRatingSum / updatedComments.length;
+
+    // Update user profile with new rating data and receivedOpinions
+    await updateDoc(userRef, {
+      ratings: {
+        averageRating: newAverageRating,
+        totalRatings: updatedComments.length,
+        ratingComments: updatedComments
+      },
+      receivedOpinions: {
+        totalOpinions: updatedComments.length,
+        opinions: updatedComments
+      },
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('Rating added successfully. New average:', newAverageRating);
+    return true;
+  } catch (error) {
+    console.error('Error adding rating:', error);
+    return false;
+  }
+};
+
+export const getVolunteerRatings = async (volunteerId: string): Promise<{ averageRating: number; totalRatings: number; comments: RatingComment[] } | null> => {
+  try {
+    console.log('Fetching ratings for volunteer:', volunteerId);
+
+    const userRef = doc(db, 'users', volunteerId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      console.error('Volunteer not found');
+      return null;
+    }
+
+    const userData = userSnap.data() as UserProfile;
+    const ratings = userData.ratings;
+    const receivedOpinions = userData.receivedOpinions;
+
+    if (!ratings && !receivedOpinions) {
+      return {
+        averageRating: 0,
+        totalRatings: 0,
+        comments: []
+      };
+    }
+
+    // Use receivedOpinions if available, otherwise fall back to ratings
+    const opinions = receivedOpinions?.opinions || ratings?.ratingComments || [];
+    const averageRating = ratings?.averageRating || 0;
+    const totalRatings = ratings?.totalRatings || opinions.length;
+
+    return {
+      averageRating: averageRating,
+      totalRatings: totalRatings,
+      comments: opinions
+    };
+  } catch (error) {
+    console.error('Error fetching ratings:', error);
+    return null;
+  }
+};
+
+// Migration function to move from givenOpinions to receivedOpinions structure
+export const migrateOpinionsStructure = async (): Promise<void> => {
+  try {
+    console.log('Starting migration from givenOpinions to receivedOpinions...');
+    
+    const usersRef = collection(db, 'users');
+    const usersSnap = await getDocs(usersRef);
+    
+    const batch = writeBatch(db);
+    let batchCount = 0;
+    
+    for (const userDoc of usersSnap.docs) {
+      const userData = userDoc.data() as UserProfile;
+      
+      // Check if user has givenOpinions that need to be migrated
+      if ((userData as any).givenOpinions && (userData as any).givenOpinions.opinions.length > 0) {
+        console.log(`Migrating opinions for user: ${userData.firstName} ${userData.lastName}`);
+        
+        // Remove givenOpinions field
+        batch.update(userDoc.ref, {
+          givenOpinions: deleteField(),
+          updatedAt: serverTimestamp()
+        });
+        
+        batchCount++;
+        
+        // Process each opinion and add it to the target user's receivedOpinions
+        for (const opinion of (userData as any).givenOpinions.opinions) {
+          const targetUserRef = doc(db, 'users', opinion.targetUserId);
+          const targetUserSnap = await getDoc(targetUserRef);
+          
+          if (targetUserSnap.exists()) {
+            const targetUserData = targetUserSnap.data() as UserProfile;
+            const currentReceivedOpinions = targetUserData.receivedOpinions || {
+              totalOpinions: 0,
+              opinions: []
+            };
+            
+            // Create RatingComment from UserOpinion
+            const ratingComment: RatingComment = {
+              id: opinion.id,
+              authorId: userData.id || userDoc.id,
+              authorName: `${userData.firstName} ${userData.lastName}`,
+              authorBadges: userData.badges ? Object.keys(userData.badges).filter(badge => userData.badges![badge as keyof typeof userData.badges].earned) : [],
+              comment: opinion.comment,
+              rating: opinion.rating,
+              createdAt: opinion.createdAt
+            };
+            
+            // Add to target user's receivedOpinions
+            const updatedReceivedOpinions = [...currentReceivedOpinions.opinions, ratingComment];
+            
+            batch.update(targetUserRef, {
+              receivedOpinions: {
+                totalOpinions: updatedReceivedOpinions.length,
+                opinions: updatedReceivedOpinions
+              },
+              updatedAt: serverTimestamp()
+            });
+            
+            batchCount++;
+          }
+        }
+      }
+      
+      // Commit batch every 500 operations (Firestore limit)
+      if (batchCount >= 500) {
+        await batch.commit();
+        batchCount = 0;
+      }
+    }
+    
+    // Commit remaining operations
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+    
+    console.log('Migration completed successfully');
+  } catch (error) {
+    console.error('Error during migration:', error);
+    throw error;
+  }
+};
+
+// Get user offers (applications)
+export const getUserOffers = async (firestoreUserId: string): Promise<any[]> => {
+  try {
+    const userRef = doc(db, 'users', firestoreUserId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      console.error('User not found');
+      return [];
+    }
+
+    const userData = userSnap.data() as UserProfile;
+    return userData.offers || [];
+  } catch (error) {
+    console.error('Error fetching user applications:', error);
+    return [];
+  }
+};
+
+// Delete user application
+export const deleteUserApplication = async (firestoreUserId: string, applicationId: string): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', firestoreUserId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      console.error('User not found');
+      return false;
+    }
+
+    const userData = userSnap.data() as UserProfile;
+    const offers = userData.offers || [];
+    
+    // Find and remove the offer
+    const updatedOffers = offers.filter((offer: any) => offer.id !== applicationId);
+    
+    await updateDoc(userRef, {
+      offers: updatedOffers,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('Application deleted successfully');
+    return true;
+  } catch (error) {
+    console.error('Error deleting application:', error);
+    return false;
+  }
+};
+
+// Update offer status (accept/deny with optional message)
+export const updateOfferStatus = async (
+  firestoreUserId: string, 
+  offerId: string, 
+  status: 'accepted' | 'rejected', 
+  rejectionMessage?: string
+): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', firestoreUserId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      console.error('User not found');
+      return false;
+    }
+
+    const userData = userSnap.data() as UserProfile;
+    const offers = userData.offers || [];
+    
+    // Find and update the offer
+    const updatedOffers = offers.map((offer: any) => {
+      if (offer.id === offerId) {
+        return {
+          ...offer,
+          status: status,
+          rejectionMessage: status === 'rejected' ? rejectionMessage || null : null,
+          updatedAt: serverTimestamp()
+        };
+      }
+      return offer;
+    });
+    
+    await updateDoc(userRef, {
+      offers: updatedOffers,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log(`Offer ${offerId} status updated to ${status}`);
+    return true;
+  } catch (error) {
+    console.error('Error updating offer status:', error);
+    return false;
+  }
+};
+
+// Get all students (volunteers) from a specific school
+export const getStudentsBySchool = async (schoolName: string) => {
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(
+      usersRef,
+      where('userType', '==', 'wolontariusz'),
+      where('schoolName', '==', schoolName)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const students = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    console.log(`Found ${students.length} students from school: ${schoolName}`);
+    return students;
+  } catch (error) {
+    console.error('Error fetching students by school:', error);
+    return [];
+  }
+};
+
+

@@ -48,8 +48,13 @@ import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton } from "./Chat";
 import { EditProfile } from "./EditProfile";
-import { getAllOffers, signUpForOffer, cancelOfferSignup } from "../firebase/firestore";
+import MyApplications from "./MyApplications";
+import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
+import { RatingComments } from "./RatingComments";
+import { RatingForm } from "./RatingForm";
+import { StarRating } from "./StarRating";
+// import { addDummyCommentsToUser } from "../scripts/addDummyComments";
 
 interface User {
   id: number;
@@ -440,7 +445,7 @@ const mockCompletedActions: CompletedAction[] = [
 ];
 
 export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) {
-  const { userProfile } = useAuth();
+  const { userProfile, user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState("offers");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -459,8 +464,57 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     impactPoints: 0,
     specialAchievements: 0
   });
+
+  // Helper function to format large numbers
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace('.0', '') + ' mil';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace('.0', '') + 'k';
+    }
+    return num.toString();
+  };
   const [badges, setBadges] = useState([]);
   const [selectedBadgeCategory, setSelectedBadgeCategory] = useState("all");
+  const [ratings, setRatings] = useState({
+    averageRating: 0,
+    totalRatings: 0,
+    comments: []
+  });
+  // Removed showRatingForm state since self-rating is not allowed
+
+  // Sync badges to Firestore when they're earned
+  const syncBadgesToFirestore = async () => {
+    if (!userProfile?.id) return;
+
+    try {
+      // Update progress for all badges based on current stats
+      const badgeUpdates = [
+        { type: 'pierwszyKrok', progress: userProfile.volunteerHours || 0 },
+        { type: 'zaangazowany', progress: userProfile.volunteerHours || 0 },
+        { type: 'wytrwaly', progress: userProfile.volunteerHours || 0 },
+        { type: 'bohater', progress: userProfile.volunteerHours || 0 },
+        { type: 'debiutant', progress: userProfile.totalProjects || 0 },
+        { type: 'aktywny', progress: userProfile.totalProjects || 0 },
+        { type: 'mistrz', progress: userProfile.totalProjects || 0 },
+        { type: 'konsekwentny', progress: userProfile.currentStreak || 0 },
+        { type: 'niezdomny', progress: userProfile.currentStreak || 0 },
+        { type: 'pomocnik', progress: userProfile.impactPoints || 0 },
+        { type: 'zmiana', progress: userProfile.impactPoints || 0 }
+      ];
+
+      // Update progress for each badge
+      for (const badgeUpdate of badgeUpdates) {
+        await updateBadgeProgress(userProfile.id, badgeUpdate.type, badgeUpdate.progress);
+        // Check if badge should be awarded
+        await checkAndAwardBadge(userProfile.id, badgeUpdate.type);
+      }
+
+      console.log('Badges synced to Firestore successfully');
+    } catch (error) {
+      console.error('Error syncing badges to Firestore:', error);
+    }
+  };
 
   // Convert Firestore badge data to Badge interface
   useEffect(() => {
@@ -655,6 +709,11 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       
       console.log('Setting badges:', firestoreBadges);
       setBadges(firestoreBadges);
+      
+      // Automatically sync badges to Firestore when userProfile changes
+      if (userProfile?.id) {
+        syncBadgesToFirestore();
+      }
   }, [userProfile]);
 
   // Fetch volunteer statistics from Firestore
@@ -694,6 +753,25 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
 
     fetchOffers();
   }, []);
+
+  // Fetch ratings for the volunteer
+  useEffect(() => {
+    const fetchRatings = async () => {
+      if (userProfile?.id) {
+        try {
+          const ratingsData = await getVolunteerRatings(userProfile.id);
+          if (ratingsData) {
+            setRatings(ratingsData);
+          }
+        } catch (error) {
+          console.error('Error fetching ratings:', error);
+        }
+      }
+    };
+
+    fetchRatings();
+  }, [userProfile?.id]);
+
 
   // Function to handle photo upload for completed actions
   const handlePhotoUpload = (actionId: number, files: FileList | null) => {
@@ -766,7 +844,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
-  const appliedOffers = offers.filter(offer => offer.participants.includes(user?.uid || ''));
+  const appliedOffers = offers.filter(offer => offer.participants.includes(userProfile?.id || ''));
   const userAge = calculateAge(user.birthDate);
 
   const getUrgencyColor = (urgency: string) => {
@@ -840,47 +918,48 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
 
   const handleApplyToOffer = async (offerId: string) => {
     try {
-      if (!user?.uid) {
-        alert("Musisz być zalogowany, aby zgłosić się na ofertę.");
+      if (!userProfile?.id) {
+        console.log("User not logged in - cannot apply to offer");
         return;
       }
 
-      const success = await signUpForOffer(offerId, user.uid);
+      console.log('Attempting to sign up for offer:', offerId, 'with user:', userProfile.id);
+      const success = await signUpForOffer(offerId, userProfile.id);
+      console.log('Sign up result:', success);
       if (success) {
-    alert("Zgłoszenie zostało wysłane! Organizacja skontaktuje się z Tobą wkrótce.");
+        console.log("Successfully applied to offer");
         // Refresh offers to update the UI
         const updatedOffers = await getAllOffers();
         setOffers(updatedOffers);
       } else {
-        alert("Nie udało się zgłosić na ofertę. Spróbuj ponownie.");
+        console.log("Failed to apply to offer");
       }
     } catch (error) {
       console.error('Error applying to offer:', error);
-      alert("Wystąpił błąd podczas zgłaszania się na ofertę.");
     }
   };
 
   const handleCancelOffer = async (offerId: string) => {
     try {
-      if (!user?.uid) {
-        alert("Musisz być zalogowany, aby anulować zgłoszenie.");
+      if (!userProfile?.id) {
+        console.log("User not logged in - cannot cancel offer");
         return;
       }
 
-      const success = await cancelOfferSignup(offerId, user.uid);
+      const success = await cancelOfferSignup(offerId, userProfile.id);
       if (success) {
-        alert("Zgłoszenie zostało anulowane.");
+        console.log("Successfully canceled offer application");
         // Refresh offers to update the UI
         const updatedOffers = await getAllOffers();
         setOffers(updatedOffers);
       } else {
-        alert("Nie udało się anulować zgłoszenia. Spróbuj ponownie.");
+        console.log("Failed to cancel offer application");
       }
     } catch (error) {
       console.error('Error canceling offer:', error);
-      alert("Wystąpił błąd podczas anulowania zgłoszenia.");
     }
   };
+
 
   const OfferCard = ({ offer }: { offer: Offer }) => (
     <Card className="mb-4 border-l-4 border-l-pink-500">
@@ -961,7 +1040,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
         </div>
         
         <div className="flex gap-2">
-          {offer.participants.includes(user?.uid || '') ? (
+          {offer.participants.includes(userProfile?.id || '') ? (
             <Button 
               variant="outline" 
               onClick={() => handleCancelOffer(offer.id)}
@@ -1091,206 +1170,29 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
               </Card>
             ) : filteredOffers.length > 0 ? (
               filteredOffers.map(offer => (
-                <OfferCard key={offer.id} offer={offer} />
-              ))
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Nie znaleziono ofert spełniających kryteria</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="my-applications" className="space-y-4">
-            <div className="text-center mb-6">
-              <h2 className="mb-2">Moja aktywność</h2>
-              <p className="text-sm text-muted-foreground">Twoje zgłoszenia i zakończone akcje</p>
+                <div key={offer.id}>
+                  <OfferCard offer={offer} />
             </div>
-            
-            {/* Inner Tabs for Applications and History */}
-            <Card>
-              <CardContent className="p-2">
-                <Tabs defaultValue="applications">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="applications">Zgłoszenia</TabsTrigger>
-                    <TabsTrigger value="history">Historia</TabsTrigger>
-                  </TabsList>
-                  
-                  {/* Applications Tab */}
-                  <TabsContent value="applications" className="mt-4 space-y-4">
-                    {appliedOffers.length > 0 ? (
-                      appliedOffers.map(offer => (
-                        <OfferCard key={offer.id} offer={offer} />
                       ))
                     ) : (
                       <Card>
                         <CardContent className="p-8 text-center">
-                          <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground mb-4">Nie masz jeszcze żadnych zgłoszeń</p>
-                          <Button onClick={() => setActiveTab("offers")} variant="outline">
-                            Przeglądaj oferty
-                          </Button>
+                  <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nie znaleziono ofert spełniających kryteria</p>
                         </CardContent>
                       </Card>
                     )}
                   </TabsContent>
 
-                  {/* History Tab */}
-                  <TabsContent value="history" className="mt-4 space-y-4">
-                    {/* Completed Actions */}
-                    <div className="space-y-4">
-                      {completedActions.map(action => (
-                        <Card key={action.id} className="overflow-hidden">
-                          <CardHeader className="pb-3">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-lg">{action.title}</CardTitle>
-                                <CardDescription>{action.organization}</CardDescription>
-                              </div>
-                              {action.rating && (
-                                <div className="flex gap-1">
-                                  {[1, 2, 3, 4, 5].map(star => (
-                                    <Star 
-                                      key={star} 
-                                      className={`h-4 w-4 ${
-                                        star <= action.rating! 
-                                          ? "text-yellow-400 fill-yellow-400" 
-                                          : "text-gray-300"
-                                      }`} 
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </CardHeader>
-                          
-                          <CardContent className="space-y-4">
-                            {/* Action Details */}
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-gray-500" />
-                                <span>{new Date(action.date).toLocaleDateString('pl-PL')}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-gray-500" />
-                                <span>{action.duration}</span>
-                              </div>
-                              <div className="flex items-center gap-2 col-span-2">
-                                <MapPin className="h-4 w-4 text-gray-500" />
-                                <span>{action.location}</span>
-                              </div>
-                            </div>
-
-                            <p className="text-sm text-gray-600">{action.description}</p>
-
-                            {action.feedback && (
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                <p className="text-sm text-green-800">{action.feedback}</p>
-                              </div>
-                            )}
-
-                            {/* Photos Section */}
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-center">
-                                <h4 className="text-sm font-medium flex items-center gap-2">
-                                  <Camera className="h-4 w-4" />
-                                  Zdjęcia z akcji ({action.photos.length})
-                                </h4>
-                                <label className="cursor-pointer">
-                                  <input
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => handlePhotoUpload(action.id, e.target.files)}
-                                  />
-                                  <div className="flex items-center gap-1 text-xs text-pink-600 bg-pink-50 px-3 py-1 rounded-full border border-pink-200 hover:bg-pink-100 transition-colors">
-                                    <Plus className="h-3 w-3" />
-                                    Dodaj zdjęcia
-                                  </div>
-                                </label>
-                              </div>
-
-                              {/* Photo Grid */}
-                              {action.photos.length > 0 && (
-                                <div className="grid grid-cols-2 gap-2">
-                                  {action.photos.map(photo => (
-                                    <div key={photo.id} className="relative group">
-                                      <img
-                                        src={photo.url}
-                                        alt={photo.caption || "Zdjęcie z akcji"}
-                                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                                      />
-                                      
-                                      {/* Photo Actions */}
-                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 rounded-lg flex items-center justify-center">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            onClick={() => removePhoto(action.id, photo.id)}
-                                            className="h-8 w-8 p-0"
-                                          >
-                                            <X className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </div>
-
-                                      {/* Caption */}
-                                      {photo.caption && (
-                                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-2 rounded-b-lg">
-                                          {photo.caption}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Add first photo prompt */}
-                              {action.photos.length === 0 && (
-                                <label className="cursor-pointer">
-                                  <input
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => handlePhotoUpload(action.id, e.target.files)}
-                                  />
-                                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-pink-400 hover:bg-pink-50 transition-colors">
-                                    <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                    <p className="text-sm text-gray-600 mb-1">Dodaj zdjęcia z tej akcji</p>
-                                    <p className="text-xs text-gray-500">Kliknij lub przeciągnij pliki tutaj</p>
-                                  </div>
-                                </label>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-
-                    {/* Empty State for History */}
-                    {completedActions.length === 0 && (
-                      <Card>
-                        <CardContent className="text-center py-8">
-                          <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                          <h3 className="text-lg font-medium mb-2">Brak zakończonych akcji</h3>
-                          <p className="text-sm text-gray-600 mb-4">
-                            Gdy zakończysz swoje pierwsze akcje wolontariackie, pojawią się tutaj
-                          </p>
-                          <Button onClick={() => setActiveTab("offers")} className="bg-gradient-to-r from-pink-500 to-pink-600">
-                            Przeglądaj oferty
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+          <TabsContent value="my-applications" className="space-y-4">
+            <MyApplications 
+              onApplicationChange={async () => {
+                // Refresh offers when application changes
+                const updatedOffers = await getAllOffers();
+                setOffers(updatedOffers);
+              }}
+              onNavigateToOffers={() => setActiveTab("offers")}
+            />
           </TabsContent>
 
           <TabsContent value="calendar" className="space-y-4">
@@ -1500,18 +1402,35 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             <div className="text-center mb-6">
               <Avatar className="w-20 h-20 mx-auto mb-4">
                 <AvatarFallback className="bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xl">
-                  {currentUser.firstName[0]}{currentUser.lastName[0]}
+                  {userProfile?.firstName?.[0]}{userProfile?.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <h2 className="mb-1">{currentUser.firstName} {currentUser.lastName}</h2>
+              <h2 className="mb-1">{userProfile?.firstName} {userProfile?.lastName}</h2>
               <p className="text-sm text-muted-foreground">
-                {currentUser.isMinor ? `${userAge} lat (konto małoletnie)` : `${userAge} lat`}
+                {userProfile?.birthDate ? `${userAge} lat` : 'Wiek nieznany'}
               </p>
-              {currentUser.schoolName && (
+              {userProfile?.schoolName && (
                 <p className="text-sm text-muted-foreground">
-                  {currentUser.schoolName}
+                  {userProfile.schoolName}
                 </p>
               )}
+              
+              
+              {/* Average Rating */}
+              <div className="flex items-center justify-center gap-2 mt-2">
+                {ratings.totalRatings > 0 ? (
+                  <>
+                    <StarRating rating={ratings.averageRating} size="sm" />
+                    <span className="text-sm text-muted-foreground">
+                      {ratings.averageRating.toFixed(1)} ({ratings.totalRatings} {ratings.totalRatings === 1 ? 'ocena' : 'ocen'})
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    Brak ocen
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Bio Section */}
@@ -1662,6 +1581,17 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                         </Button>
                       </CardContent>
                     </Card>
+
+                    {/* Rating System */}
+                    <RatingComments 
+                      comments={ratings.comments}
+                      averageRating={ratings.averageRating}
+                      totalRatings={ratings.totalRatings}
+                    />
+
+                    {/* Self-rating is not allowed - users cannot rate themselves */}
+
+
                   </TabsContent>
                   
                   <TabsContent value="privacy-settings" className="mt-4">
@@ -1684,24 +1614,41 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-pink-600">{volunteerStats.totalHours}</div>
-                    <div className="text-xs text-muted-foreground">Godzin wolontariatu</div>
+                    <div className="text-2xl font-bold text-pink-600">{formatNumber(volunteerStats.totalHours)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {volunteerStats.totalHours === 1 ? 'Godzina wolontariatu' : 
+                       volunteerStats.totalHours === 0 || volunteerStats.totalHours >= 5 ? 'Godzin wolontariatu' : 
+                       'Godziny wolontariatu'}
+                    </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{volunteerStats.totalProjects}</div>
-                    <div className="text-xs text-muted-foreground">Ukończonych projektów</div>
+                    <div className="text-2xl font-bold text-blue-600">{formatNumber(volunteerStats.totalProjects)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {volunteerStats.totalProjects === 1 ? 'Ukończony projekt' : 
+                       volunteerStats.totalProjects === 0 || volunteerStats.totalProjects >= 5 ? 'Ukończonych projektów' : 
+                       'Ukończone projekty'}
+                    </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">{volunteerStats.currentStreak}</div>
-                    <div className="text-xs text-muted-foreground">Tygodni z rzędu</div>
+                    <div className="text-2xl font-bold text-orange-600">{formatNumber(volunteerStats.currentStreak)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {volunteerStats.currentStreak === 1 ? 'Tydzień z rzędu' : 
+                       volunteerStats.currentStreak === 0 || volunteerStats.currentStreak >= 5 ? 'Tygodni z rzędu' : 
+                       'Tygodnie z rzędu'}
+                    </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{volunteerStats.impactPoints}</div>
-                    <div className="text-xs text-muted-foreground">Punktów wpływu</div>
+                    <div className="text-2xl font-bold text-green-600">{formatNumber(volunteerStats.impactPoints)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {volunteerStats.impactPoints === 1 ? 'Punkt wpływu' : 
+                       volunteerStats.impactPoints === 0 || volunteerStats.impactPoints >= 5 ? 'Punktów wpływu' : 
+                       'Punkty wpływu'}
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
 
             {/* Badge Categories Filter */}
             <Card>
@@ -2040,6 +1987,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
           </div>
         </div>
       </div>
+      
     </div>
   );
 }

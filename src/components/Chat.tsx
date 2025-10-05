@@ -14,107 +14,76 @@ import {
   Info,
   MoreVertical,
   Paperclip,
-  Smile
+  Smile,
+  Search,
+  UserPlus,
+  Users
 } from "lucide-react";
-import { useChat, ChatContact } from "../contexts/ChatContext";
-
-interface Message {
-  id: number;
-  text: string;
-  sender: 'user' | 'contact' | 'system';
-  timestamp: Date;
-  status?: 'sending' | 'sent' | 'delivered' | 'read';
-}
+import { useChat, ChatContact, Message } from "../contexts/ChatContext";
+import { useAuth } from "../contexts/AuthContext";
 
 interface ChatProps {
   userType: 'wolontariusz' | 'koordynator' | 'organizacja';
 }
 
 export function Chat({ userType }: ChatProps) {
-  const { isChatOpen, currentContact, closeChat } = useChat();
+  const { 
+    isChatOpen, 
+    currentContact, 
+    messages, 
+    contacts,
+    openChat,
+    closeChat, 
+    sendMessage, 
+    searchUserByEmail,
+    loadContacts 
+  } = useChat();
+  const { userProfile } = useAuth();
   const [isMinimized, setIsMinimized] = useState(false);
-
-  // Don't render if chat is not open or no contact
-  if (!isChatOpen || !currentContact) {
-    return null;
-  }
-
-  const contact = currentContact;
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Cześć! Dziękuję za zainteresowanie naszą ofertą wolontariatu. W czym mogę Ci pomóc?",
-      sender: 'contact',
-      timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
-      status: 'read'
-    },
-    {
-      id: 2,
-      text: "Dzień dobry! Chciałbym dowiedzieć się więcej o wymaganiach i terminach.",
-      sender: 'user',
-      timestamp: new Date(Date.now() - 3 * 60 * 1000), // 3 minutes ago
-      status: 'read'
-    }
-  ]);
   const [newMessage, setNewMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [searchEmail, setSearchEmail] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchResult, setSearchResult] = useState<ChatContact | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (userProfile?.id) {
+      localStorage.setItem('currentUserId', userProfile.id);
+      loadContacts();
+    }
+  }, [userProfile, loadContacts]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
+    console.log('Messages updated:', messages);
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      const message: Message = {
-        id: Date.now(),
-        text: newMessage.trim(),
-        sender: 'user',
-        timestamp: new Date(),
-        status: 'sending'
-      };
-      
-      setMessages(prev => [...prev, message]);
+  const handleSendMessage = async () => {
+    if (newMessage.trim() && currentContact) {
+      console.log('Sending message to:', currentContact.id, 'Text:', newMessage.trim());
+      await sendMessage(newMessage.trim(), currentContact.id);
       setNewMessage("");
-      
-      // Simulate message being sent
-      setTimeout(() => {
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.id === message.id ? { ...msg, status: 'sent' } : msg
-          )
-        );
-      }, 500);
-
-      // Simulate contact typing response
-      setTimeout(() => {
-        setIsTyping(true);
-        setTimeout(() => {
-          setIsTyping(false);
-          const responses = [
-            "Świetnie! Wymagania to podstawowa znajomość pracy z dziećmi. Czy masz jakieś doświadczenie?",
-            "Projekt rozpoczyna się 15 listopada. Potrzebujemy Cię na 3 godziny tygodniowo.",
-            "Oczywiście! Chętnie opowiem więcej. Czy możemy umówić się na krótką rozmowę?",
-            "To brzmi doskonale! Prześlę Ci szczegółowe informacje na email.",
-            "Dziękuję za zainteresowanie! Czy masz pytania dotyczące lokalizacji?"
-          ];
-          
-          const responseMessage: Message = {
-            id: Date.now() + 1,
-            text: responses[Math.floor(Math.random() * responses.length)],
-            sender: 'contact',
-            timestamp: new Date(),
-            status: 'read'
-          };
-          
-          setMessages(prev => [...prev, responseMessage]);
-        }, 2000);
-      }, 1000);
     }
+  };
+
+  const handleSearchUser = async () => {
+    if (searchEmail.trim()) {
+      const user = await searchUserByEmail(searchEmail.trim());
+      setSearchResult(user);
+    }
+  };
+
+  const handleStartChat = (contact: ChatContact) => {
+    console.log('Starting chat with:', contact);
+    setShowSearch(false);
+    setSearchEmail("");
+    setSearchResult(null);
+    // Open chat with the selected contact
+    openChat(contact);
   };
 
   const handleKeyPress = (e: any) => {
@@ -124,7 +93,9 @@ export function Chat({ userType }: ChatProps) {
     }
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleTimeString('pl-PL', { 
       hour: '2-digit', 
       minute: '2-digit' 
@@ -140,6 +111,11 @@ export function Chat({ userType }: ChatProps) {
       default: return '';
     }
   };
+
+  // Don't render if chat is not open
+  if (!isChatOpen) {
+    return null;
+  }
 
   if (isMinimized) {
     return (
@@ -161,22 +137,40 @@ export function Chat({ userType }: ChatProps) {
         <CardHeader className="p-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
-              <Avatar className="w-8 h-8 flex-shrink-0">
-                <AvatarFallback className="bg-white text-pink-600 text-sm">
-                  {contact.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1 max-w-[50%]">
-                <h3 className="text-sm font-medium break-words">{contact.name}</h3>
+              {currentContact ? (
+                <>
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    <AvatarFallback className="bg-white text-pink-600 text-sm">
+                      {currentContact.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1 max-w-[50%]">
+                    <h3 className="text-sm font-medium break-words">{currentContact.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${currentContact.isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
+                      <p className="text-xs opacity-90 truncate">
+                        {currentContact.isOnline ? 'Online' : currentContact.lastSeen || 'Offline'}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${contact.isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
-                  <p className="text-xs opacity-90 truncate">
-                    {contact.isOnline ? 'Online' : contact.lastSeen || 'Offline'}
-                  </p>
+                  <Users className="h-5 w-5" />
+                  <h3 className="text-sm font-medium">Kontakty</h3>
                 </div>
-              </div>
+              )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSearch(!showSearch)}
+                className="h-8 w-8 text-white hover:bg-white/20"
+                title="Szukaj użytkownika"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -197,85 +191,178 @@ export function Chat({ userType }: ChatProps) {
           </div>
         </CardHeader>
 
-        {/* Messages */}
+        {/* Content */}
         <CardContent className="p-0 h-80 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[80%]">
-                  <div
-                    className={`rounded-2xl px-3 py-2 text-sm ${
-                      message.sender === 'user'
-                        ? 'bg-pink-600 text-white'
-                        : message.sender === 'system'
-                        ? 'bg-gray-100 text-gray-600 text-center'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {message.text}
-                  </div>
-                  <div className={`text-xs text-gray-500 mt-1 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                    {formatTime(message.timestamp)}
-                    {message.sender === 'user' && (
-                      <span className="ml-1 text-pink-600">
-                        {getStatusIcon(message.status)}
-                      </span>
-                    )}
-                  </div>
+          {showSearch ? (
+            /* Search Interface */
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Wpisz email użytkownika..."
+                    value={searchEmail}
+                    onChange={(e) => setSearchEmail(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearchUser()}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSearchUser} size="sm">
+                    <Search className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
-            ))}
-            
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%]">
-                  <div className="bg-gray-100 text-gray-800 rounded-2xl px-3 py-2 text-sm">
-                    <div className="flex items-center gap-1">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                
+                {searchResult ? (
+                  <div className="border rounded-lg p-3 bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback className="bg-pink-100 text-pink-600">
+                          {searchResult.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{searchResult.name}</h4>
+                        <p className="text-sm text-gray-600">{searchResult.email}</p>
+                        <p className="text-xs text-gray-500">{searchResult.role}</p>
                       </div>
+                      <Button 
+                        onClick={() => handleStartChat(searchResult)}
+                        size="sm"
+                        className="bg-pink-600 hover:bg-pink-700"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        Chat
+                      </Button>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {contact.name} pisze...
+                ) : searchEmail && !searchResult ? (
+                  <div className="text-center text-gray-500 py-4">
+                    Nie znaleziono użytkownika
                   </div>
+                ) : null}
+              </div>
+            </div>
+          ) : currentContact ? (
+            /* Messages */
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {messages.length === 0 ? (
+                <div className="text-center text-gray-500 py-4">
+                  Brak wiadomości. Napisz pierwszą wiadomość!
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <div className="border-t p-3">
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Napisz wiadomość..."
-                  className="border-gray-200 focus:border-pink-500 resize-none"
-                />
-              </div>
-              <Button
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim()}
-                className="bg-pink-600 hover:bg-pink-700 text-white h-10 w-10 p-0"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-              <span>Naciśnij Enter aby wysłać</span>
-              {contact.organization && (
-                <Badge variant="secondary" className="text-xs">
-                  {contact.organization}
-                </Badge>
+              ) : (
+                messages.map((message) => {
+                  const isCurrentUser = message.senderId === userProfile?.id;
+                  console.log('Rendering message:', message, 'isCurrentUser:', isCurrentUser);
+                  return (
+                    <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                      <div className="max-w-[80%]">
+                        <div
+                          className={`rounded-2xl px-3 py-2 text-sm ${
+                            isCurrentUser
+                              ? 'bg-pink-600 text-white'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {message.text}
+                        </div>
+                        <div className={`text-xs text-gray-500 mt-1 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
+                          {formatTime(message.timestamp)}
+                          {isCurrentUser && (
+                            <span className="ml-1 text-pink-600">
+                              {getStatusIcon(message.status)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
+              <div ref={messagesEndRef} />
             </div>
-          </div>
+          ) : (
+            /* Contact List */
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {contacts.map((contact) => (
+                <div key={contact.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback className="bg-pink-100 text-pink-600">
+                      {contact.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium truncate">{contact.name}</h4>
+                    <p className="text-sm text-gray-600 truncate">{contact.email}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {contact.role}
+                      </Badge>
+                      <div className={`w-2 h-2 rounded-full ${contact.isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => handleStartChat(contact)}
+                    size="sm"
+                    className="bg-pink-600 hover:bg-pink-700"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Input - only show when chatting with someone */}
+          {currentContact && (
+            <div className="border-t p-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Napisz wiadomość..."
+                    className="border-gray-200 focus:border-pink-500 resize-none"
+                  />
+                </div>
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim()}
+                  className="bg-pink-600 hover:bg-pink-700 text-white h-10 w-10 p-0"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <span>Naciśnij Enter aby wysłać</span>
+                  <Button
+                    onClick={() => {
+                      // Add test message for debugging
+                      const testMessage = {
+                        text: 'Test message from ' + new Date().toLocaleTimeString(),
+                        senderId: userProfile?.id || 'test',
+                        senderName: userProfile?.firstName + ' ' + userProfile?.lastName || 'Test User',
+                        receiverId: currentContact.id,
+                        timestamp: new Date(),
+                        status: 'sent',
+                        type: 'text'
+                      };
+                      console.log('Adding test message:', testMessage);
+                    }}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                  >
+                    Test
+                  </Button>
+                </div>
+                {currentContact.organization && (
+                  <Badge variant="secondary" className="text-xs">
+                    {currentContact.organization}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -293,12 +380,16 @@ interface ChatButtonProps {
 export function ChatButton({ contact, userType, variant = 'default', className = '' }: ChatButtonProps) {
   const { openChat } = useChat();
 
+  const handleClick = () => {
+    openChat(contact);
+  };
+
   if (variant === 'icon') {
     return (
       <Button 
         variant="outline" 
         size="icon"
-        onClick={() => openChat(contact)}
+        onClick={handleClick}
         className={className}
       >
         <MessageCircle className="h-4 w-4" />
@@ -310,7 +401,7 @@ export function ChatButton({ contact, userType, variant = 'default', className =
     return (
       <Button 
         variant="outline" 
-        onClick={() => openChat(contact)}
+        onClick={handleClick}
         className={`flex-1 ${className}`}
       >
         <MessageCircle className="h-4 w-4 mr-2" />
@@ -321,7 +412,7 @@ export function ChatButton({ contact, userType, variant = 'default', className =
 
   return (
     <Button 
-      onClick={() => openChat(contact)}
+      onClick={handleClick}
       className={`bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90 text-white ${className}`}
     >
       <MessageCircle className="h-4 w-4 mr-2" />

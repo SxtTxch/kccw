@@ -21,9 +21,43 @@ function AppContent() {
   const { isChatOpen } = useChat() as any;
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [isRegistration, setIsRegistration] = useState(false);
+  const [highContrast, setHighContrast] = useState(false);
   
   // Track page views
   usePageTracking('main-app');
+  
+  // Global keyboard navigation support
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Alt + A for accessibility info
+      if (event.altKey && event.key === 'a') {
+        event.preventDefault();
+        const announcement = document.createElement('div');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.setAttribute('aria-atomic', 'true');
+        announcement.className = 'sr-only';
+        announcement.textContent = 'Skróty klawiaturowe: Alt+A - dostępność, Tab - nawigacja, Enter - aktywacja, Escape - zamknij';
+        document.body.appendChild(announcement);
+        setTimeout(() => document.body.removeChild(announcement), 3000);
+      }
+      
+      // Alt + H for high contrast toggle
+      if (event.altKey && event.key === 'h') {
+        event.preventDefault();
+        setHighContrast(!highContrast);
+        const announcement = document.createElement('div');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.setAttribute('aria-atomic', 'true');
+        announcement.className = 'sr-only';
+        announcement.textContent = highContrast ? 'Wysoki kontrast wyłączony' : 'Wysoki kontrast włączony';
+        document.body.appendChild(announcement);
+        setTimeout(() => document.body.removeChild(announcement), 2000);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [highContrast]);
   
   // Check user type validation after login
   useEffect(() => {
@@ -340,8 +374,8 @@ function AppContent() {
     return (
       <>
         <MobileMetaTags />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 overflow-y-auto mobile-scroll">
-          <div className="max-w-sm mx-auto py-4">
+        <div className={`min-h-screen p-4 overflow-y-auto mobile-scroll ${highContrast ? 'bg-black text-white' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+          <div className={`max-w-sm mx-auto py-4 ${highContrast ? 'text-white' : ''}`}>
             {/* Header */}
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
@@ -398,8 +432,8 @@ function AppContent() {
   return (
     <>
       <MobileMetaTags />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 overflow-y-auto mobile-scroll">
-        <div className="max-w-sm mx-auto py-4">
+      <div className={`min-h-screen p-4 overflow-y-auto mobile-scroll ${highContrast ? 'bg-black text-white' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+        <div className={`max-w-sm mx-auto py-4 ${highContrast ? 'text-white' : ''}`}>
           {/* Header with Back Button */}
           <div className="flex items-center mb-8">
             <Button 
@@ -450,6 +484,11 @@ function AppContent() {
                       placeholder="Wprowadź swój email"
                       value={loginData.email}
                       onChange={(e) => handleLoginInputChange("email", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          document.getElementById('password')?.focus();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -463,6 +502,11 @@ function AppContent() {
                       placeholder="Wprowadź swoje hasło"
                       value={loginData.password}
                       onChange={(e) => handleLoginInputChange("password", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleLogin();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -495,6 +539,11 @@ function AppContent() {
                           placeholder="Wprowadź nazwę organizacji"
                           value={registrationData.organizationName}
                           onChange={(e) => handleRegistrationInputChange("organizationName", e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              document.getElementById('organizationType')?.focus();
+                            }
+                          }}
                           className="h-12"
                           required
                         />
@@ -525,6 +574,11 @@ function AppContent() {
                           placeholder="Wprowadź numer KRS (10 cyfr)"
                           value={registrationData.krsNumber}
                           onChange={(e) => handleRegistrationInputChange("krsNumber", e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              document.getElementById('firstName')?.focus();
+                            }
+                          }}
                           className="h-12"
                           pattern="[0-9]{10}"
                           maxLength={10}
@@ -542,6 +596,11 @@ function AppContent() {
                       placeholder={selectedUserType === "organizacja" ? "Imię osoby rejestrującej organizację" : "Wprowadź swoje imię"}
                       value={registrationData.firstName}
                       onChange={(e) => handleRegistrationInputChange("firstName", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          document.getElementById('lastName')?.focus();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -555,6 +614,11 @@ function AppContent() {
                       placeholder={selectedUserType === "organizacja" ? "Nazwisko osoby rejestrującej organizację" : "Wprowadź swoje nazwisko"}
                       value={registrationData.lastName}
                       onChange={(e) => handleRegistrationInputChange("lastName", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          document.getElementById('regEmail')?.focus();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -568,6 +632,11 @@ function AppContent() {
                       placeholder="Wprowadź swój email"
                       value={registrationData.email}
                       onChange={(e) => handleRegistrationInputChange("email", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          document.getElementById('regPassword')?.focus();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -581,6 +650,11 @@ function AppContent() {
                       placeholder="Wprowadź hasło"
                       value={registrationData.password}
                       onChange={(e) => handleRegistrationInputChange("password", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          document.getElementById('confirmPassword')?.focus();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -594,6 +668,11 @@ function AppContent() {
                       placeholder="Potwierdź hasło"
                       value={registrationData.confirmPassword}
                       onChange={(e) => handleRegistrationInputChange("confirmPassword", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          document.getElementById('street')?.focus();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -608,6 +687,11 @@ function AppContent() {
                       placeholder="Nazwa ulicy"
                       value={registrationData.street}
                       onChange={(e) => handleRegistrationInputChange("street", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          document.getElementById('houseNumber')?.focus();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -621,6 +705,11 @@ function AppContent() {
                       placeholder="np. 12, 12/5, 12A"
                       value={registrationData.houseNumber}
                       onChange={(e) => handleRegistrationInputChange("houseNumber", e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          document.getElementById('postalCode')?.focus();
+                        }
+                      }}
                       className="h-12"
                       required
                     />
@@ -635,6 +724,11 @@ function AppContent() {
                         placeholder="00-000"
                         value={registrationData.postalCode}
                         onChange={(e) => handleRegistrationInputChange("postalCode", e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            document.getElementById('city')?.focus();
+                          }
+                        }}
                         className="h-12"
                         pattern="[0-9]{2}-[0-9]{3}"
                         maxLength={6}
@@ -649,6 +743,19 @@ function AppContent() {
                         placeholder="Nazwa miasta"
                         value={registrationData.city}
                         onChange={(e) => handleRegistrationInputChange("city", e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            // Focus on next field based on user type
+                            if (selectedUserType === "wolontariusz") {
+                              document.getElementById('birthDate')?.focus();
+                            } else if (selectedUserType === "koordynator") {
+                              document.getElementById('coordinatorSchoolName')?.focus();
+                            } else {
+                              // For organization, submit the form
+                              handleRegistration();
+                            }
+                          }
+                        }}
                         className="h-12"
                         required
                       />
@@ -665,6 +772,11 @@ function AppContent() {
                           type="date"
                           value={registrationData.birthDate}
                           onChange={(e) => handleRegistrationInputChange("birthDate", e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              document.getElementById('volunteerSchoolName')?.focus();
+                            }
+                          }}
                           className="h-12"
                           required
                         />
@@ -678,6 +790,11 @@ function AppContent() {
                           placeholder="Podaj nazwę swojej szkoły"
                           value={registrationData.schoolName}
                           onChange={(e) => handleRegistrationInputChange("schoolName", e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleRegistration();
+                            }
+                          }}
                           className="h-12"
                         />
                       </div>
@@ -693,6 +810,11 @@ function AppContent() {
                         placeholder="Podaj nazwę szkoły, w której pracujesz"
                         value={registrationData.schoolName}
                         onChange={(e) => handleRegistrationInputChange("schoolName", e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleRegistration();
+                          }
+                        }}
                         className="h-12"
                         required
                       />
@@ -755,10 +877,16 @@ function AppContent() {
 }
 
 export default function App() {
+  // return <Gmaps/>
   return (
-    <AuthProvider>
-      <ChatProvider children={<AppContent />}>
-      </ChatProvider>
-    </AuthProvider>
+    <>
+      
+      <AuthProvider>
+        <ChatProvider children={<AppContent />}>
+        </ChatProvider>
+      </AuthProvider>
+    </>
   );
 }
+
+// Gmaps component removed - Google Maps is now implemented in MapView.tsx
