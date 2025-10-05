@@ -842,26 +842,57 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         
         // Calculate total volunteer hours from all offers
         let totalHours = 0;
+        let totalProjects = 0;
         if (volunteerData.offers) {
           volunteerData.offers.forEach((offer: any) => {
-            if (offer.status === 'completed' && offer.hours) {
-              totalHours += offer.hours;
+            if (offer.status === 'completed') {
+              if (offer.hours) {
+                totalHours += offer.hours;
+              }
+              totalProjects += 1;
             }
           });
         }
         
-        // Calculate average rating from user opinions
+        // Fetch received opinions to calculate average rating
         let averageRating = 0;
-        if (volunteerData.opinions && volunteerData.opinions.length > 0) {
-          const totalRating = volunteerData.opinions.reduce((sum: number, opinion: any) => sum + (opinion.rating || 0), 0);
-          averageRating = totalRating / volunteerData.opinions.length;
+        let receivedOpinionsCount = 0;
+        try {
+          const opinionsRef = collection(db, 'opinions');
+          const opinionsQuery = query(opinionsRef, where('targetUserId', '==', volunteerId));
+          const opinionsSnap = await getDocs(opinionsQuery);
+          
+          if (!opinionsSnap.empty) {
+            let totalRating = 0;
+            opinionsSnap.forEach((doc) => {
+              const opinionData = doc.data();
+              if (opinionData.rating) {
+                totalRating += opinionData.rating;
+                receivedOpinionsCount++;
+              }
+            });
+            
+            if (receivedOpinionsCount > 0) {
+              averageRating = totalRating / receivedOpinionsCount;
+            }
+          }
+        } catch (opinionsError) {
+          console.error('Error fetching opinions:', opinionsError);
+          // Fallback to user's stored opinions if available
+          if (volunteerData.opinions && volunteerData.opinions.length > 0) {
+            const totalRating = volunteerData.opinions.reduce((sum: number, opinion: any) => sum + (opinion.rating || 0), 0);
+            averageRating = totalRating / volunteerData.opinions.length;
+            receivedOpinionsCount = volunteerData.opinions.length;
+          }
         }
         
         // Update volunteer data with calculated values
         const updatedVolunteerData = {
           ...volunteerData,
           totalHours: totalHours,
-          averageRating: averageRating > 0 ? averageRating.toFixed(1) : 'N/A'
+          totalProjects: totalProjects,
+          averageRating: averageRating > 0 ? averageRating.toFixed(1) : 'N/A',
+          receivedOpinionsCount: receivedOpinionsCount
         };
         
         setSelectedVolunteer(updatedVolunteerData);
