@@ -237,123 +237,76 @@ export function MapView({ userType }: MapViewProps) {
 
   // Google Maps implementation
   useEffect(() => {
-    // Ensure the map div exists before initializing
-    const initMap = () => {
+    let map: any;
+
+    const initialize = () => {
       const mapElement = document.getElementById("map");
       if (!mapElement) {
         console.error("Map element not found");
         return;
       }
 
-      const options = {
-        center: { lat: 50.0647, lng: 19.9450 }, // Krakow coordinates
+      console.log("Initializing map...");
+
+      const mapOptions = {
         zoom: 12,
-        gestureHandling: 'greedy', 
-        scrollwheel: true, 
-        disableDoubleClickZoom: false, 
-        zoomControl: false, // Remove +/- zoom controls
-        mapTypeControl: false, // Remove map/satellite switch
-        scaleControl: false, // Remove scale control
-        streetViewControl: false, // Remove street view
-        rotateControl: false, // Remove rotate button
-        fullscreenControl: true, // Keep fullscreen button
-        panControl: false // Remove navigation arrows (4 arrows)
+        center: new (window as any).google.maps.LatLng(50.0647, 19.9450), // Krakow center
+        mapTypeId: (window as any).google.maps.MapTypeId.ROADMAP,
+        restriction: {
+          latLngBounds: {
+            north: 50.2,
+            south: 49.9,
+            east: 20.2,
+            west: 19.7
+          },
+          strictBounds: true
+        },
+        minZoom: 10,
+        maxZoom: 16,
+        streetViewControl: false,
+        mapTypeControl: false,
+        fullscreenControl: true,
+        panControl: false
       };
 
-      const map = new (window as any).google.maps.Map(mapElement, options);
+      map = new (window as any).google.maps.Map(mapElement, mapOptions);
 
-      // Add bounds restriction after map is initialized
-      try {
-        const krakowBounds = new (window as any).google.maps.LatLngBounds(
-          new (window as any).google.maps.LatLng(49.9, 19.7), // Southwest corner
-          new (window as any).google.maps.LatLng(50.2, 20.2)  // Northeast corner
-        );
-
-        // Set bounds restriction
-        map.setOptions({
-          restriction: {
-            latLngBounds: krakowBounds,
-            strictBounds: true
-          }
-        });
-
-        // Restrict zoom level to reasonable range for Krakow
-        (window as any).google.maps.event.addListener(map, 'zoom_changed', () => {
-          if (map.getZoom() > 16) {
-            map.setZoom(16);
-          } else if (map.getZoom() < 10) {
-            map.setZoom(10);
-          }
-        });
-      } catch (error) {
-        console.error('Error setting map bounds:', error);
-      }
-
-      // Add keyboard navigation support for accessibility
-      mapElement.setAttribute('tabindex', '0');
-      mapElement.setAttribute('role', 'application');
-      mapElement.setAttribute('aria-label', 'Mapa inicjatyw wolontariackich w Krakowie');
-      
-      // Add keyboard event listeners for accessibility
-      mapElement.addEventListener('keydown', (event: KeyboardEvent) => {
-        const center = map.getCenter();
-        const zoom = map.getZoom();
-        
-        switch(event.key) {
-          case 'ArrowUp':
-            event.preventDefault();
-            map.panBy(0, -50);
-            break;
-          case 'ArrowDown':
-            event.preventDefault();
-            map.panBy(0, 50);
-            break;
-          case 'ArrowLeft':
-            event.preventDefault();
-            map.panBy(-50, 0);
-            break;
-          case 'ArrowRight':
-            event.preventDefault();
-            map.panBy(50, 0);
-            break;
-          case '+':
-          case '=':
-            event.preventDefault();
-            map.setZoom(zoom + 1);
-            break;
-          case '-':
-            event.preventDefault();
-            map.setZoom(zoom - 1);
-            break;
-          case 'Home':
-            event.preventDefault();
-            map.setCenter({ lat: 50.0647, lng: 19.9450 });
-            map.setZoom(12);
-            break;
-        }
+      // Add click listener
+      map.addListener('click', (event: any) => {
+        handleMapClick(event, map);
       });
 
-      (window as any).google.maps.event.addListener(map, "click", (event: any) => {
-        handleMapClick(event);
-      });
+      console.log("Map initialized successfully");
     };
 
-    // Set up the global initMap function
-    (window as any).initMap = initMap;
+    // Load Google Maps script if not already loaded
+    if (!(window as any).google || !(window as any).google.maps) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCmVW69-bZkZ4atEYHSLZg5TMIjJc1Fsyw&libraries=places&callback=initMap`;
+      script.async = true;
+      script.defer = true;
+      
+      // Set global callback
+      (window as any).initMap = initialize;
+      
+      script.onload = () => {
+        console.log('Google Maps script loaded');
+      };
+      
+      script.onerror = () => {
+        console.error('Failed to load Google Maps script');
+      };
+      
+      document.head.appendChild(script);
+    } else {
+      // Google Maps already loaded, initialize directly
+      initialize();
+    }
 
-    // Load Google Maps script
-    const script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCmVW69-bZkZ4atEYHSLZg5TMIjJc1Fsyw&libraries=places,marker&callback=initMap';
-    script.async = true;
-    script.defer = true;
-    script.crossOrigin = 'anonymous';
-    document.head.appendChild(script);
-
+    // Cleanup function
     return () => {
-      // Cleanup
-      if ((window as any).initMap) {
-        (window as any).initMap = undefined;
-      }
+      // Clean up any existing markers
+      markers.forEach(marker => marker.setMap(null));
     };
   }, []);
 
