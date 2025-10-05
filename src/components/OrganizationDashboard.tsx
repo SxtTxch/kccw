@@ -1237,7 +1237,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               <div className="flex justify-between items-start mb-3">
                 <CardTitle className="text-xl">{selectedOffer.title}</CardTitle>
                 <div className="flex flex-col items-end gap-1">
-                  <Badge className={`${getOfferStatusColor(selectedOffer.status)}`}>
+                  <Badge className={`${getOfferStatusColor(selectedOffer.status)} ${selectedOffer.status === 'active' ? 'ml-2' : ''}`}>
                     {getOfferStatusLabel(selectedOffer.status)}
                   </Badge>
                   <Badge className={`${getUrgencyColor(selectedOffer.urgency)} border text-xs`}>
@@ -1916,7 +1916,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         <CardDescription className="mb-2">{offer.category}</CardDescription>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <Badge className={`${getOfferStatusColor(offer.status)}`}>
+                        <Badge className={`${getOfferStatusColor(offer.status)} ${offer.status === 'active' ? 'ml-2' : ''}`}>
                           {getOfferStatusLabel(offer.status)}
                         </Badge>
                         <Badge className={`${getUrgencyColor(offer.urgency)} border text-xs`}>
