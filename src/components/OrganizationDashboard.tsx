@@ -768,9 +768,43 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     }));
   };
 
-  const submitEditOffer = () => {
-    console.log("Edytowana oferta:", editOfferData);
-    handleBackToOffers();
+  const submitEditOffer = async () => {
+    try {
+      console.log("Edytowana oferta:", editOfferData);
+      
+      if (!selectedOffer?.id) {
+        console.error("No offer selected for editing");
+        return;
+      }
+
+      // Update the offer in Firebase
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../firebase/config');
+      
+      const offerRef = doc(db, 'offers', selectedOffer.id);
+      await updateDoc(offerRef, {
+        title: editOfferData.title,
+        category: editOfferData.category,
+        description: editOfferData.description,
+        requirements: editOfferData.requirements ? editOfferData.requirements.split(',').map(r => r.trim()) : [],
+        startDate: editOfferData.startDate,
+        endDate: editOfferData.startDate, // Same as startDate since we only have one date
+        duration: editOfferData.duration,
+        maxParticipants: parseInt(editOfferData.maxVolunteers) || 0,
+        contactEmail: editOfferData.contactEmail,
+        updatedAt: new Date()
+      });
+
+      console.log("Offer updated successfully");
+      
+      // Refresh the offers list
+      const organizationOffers = await getOffersByOrganization(user.id.toString());
+      setOffers(organizationOffers);
+      
+      handleBackToOffers();
+    } catch (error) {
+      console.error("Error updating offer:", error);
+    }
   };
 
   // Volunteer view handlers
