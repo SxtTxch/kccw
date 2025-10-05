@@ -1831,37 +1831,6 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                     )}
 
 
-                    {/* Regular Certificate Card for Adults */}
-                    {!(() => {
-                      const birthDate = user.birthDate || userProfile?.birthDate;
-                      if (!birthDate) return user.isMinor || userProfile?.isMinor;
-                      
-                      const today = new Date();
-                      const birth = new Date(birthDate);
-                      const age = today.getFullYear() - birth.getFullYear();
-                      const monthDiff = today.getMonth() - birth.getMonth();
-                      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
-                      
-                      return user.isMinor || userProfile?.isMinor || actualAge < 18;
-                    })() && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5" />
-                            Moje zaświadczenia
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Tutaj znajdziesz zaświadczenia o wykonanym wolontariacie
-                          </p>
-                          <Button variant="outline" className="w-full" disabled>
-                            <FileText className="h-4 w-4 mr-2" />
-                            Brak zaświadczeń
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    )}
 
                     <Card>
                       <CardContent className="p-4">
