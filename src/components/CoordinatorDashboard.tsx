@@ -1674,7 +1674,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                                 <div 
                                   className="h-2 bg-yellow-500 rounded-full transition-all duration-300"
                                   style={{ 
-                                    width: `${stats.averageRating > 0 ? Math.max((stats.averageRating / 5) * 100, 10) : 10}%` 
+                                    width: `${stats.averageRating > 0 ? (stats.averageRating / 5) * 100 : 0}%` 
                                   }}
                                 ></div>
                               </div>
