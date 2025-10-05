@@ -1763,7 +1763,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="mb-4">
               <Card>
                 <CardContent className="p-3 text-center">
                   <div className="text-2xl font-semibold text-green-600">{stats.activeOffers}</div>
