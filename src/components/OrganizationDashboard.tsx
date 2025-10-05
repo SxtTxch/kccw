@@ -779,11 +779,15 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
   const handleRejectApplication = async (applicationId: string) => {
     try {
+      console.log('Rejecting application:', applicationId);
       const success = await updateApplicationStatus(applicationId, 'rejected');
+      console.log('Rejection result:', success);
       if (success) {
         // Refresh applications
         if (selectedOffer) {
+          console.log('Refreshing applications for offer:', selectedOffer.id);
           const updatedApplications = await getOfferApplications(selectedOffer.id);
+          console.log('Updated applications:', updatedApplications);
           setApplications(updatedApplications);
         }
       }

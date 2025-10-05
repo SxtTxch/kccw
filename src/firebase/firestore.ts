@@ -1102,7 +1102,7 @@ export const getOfferApplications = async (offerId: string): Promise<any[]> => {
       }
     }
     
-    console.log(`Found ${applications.length} applications for offer ${offerId}`);
+    console.log(`Found ${applications.length} applications for offer ${offerId}:`, applications.map(app => ({ id: app.id, volunteerName: app.volunteerName, status: app.status })));
     return applications;
   } catch (error) {
     console.error('Error fetching offer applications:', error);
@@ -1129,7 +1129,9 @@ export const updateApplicationStatus = async (applicationId: string, status: 'ac
     
     if (status === 'rejected') {
       // Delete the application from the applications collection
+      console.log('Deleting application from applications collection:', applicationId);
       await deleteDoc(applicationRef);
+      console.log('Application deleted successfully');
       
       // Update user's application status to rejected
       const userRef = doc(db, 'users', applicationData.volunteerId);
