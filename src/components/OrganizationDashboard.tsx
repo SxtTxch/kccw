@@ -1949,12 +1949,12 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     <p className="text-sm mb-3">{offer.description}</p>
                     
                     
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 flex-wrap">
                       <Button 
                         onClick={() => handleViewOffer(offer)}
                         variant="outline" 
                         size="sm" 
-                        className="px-2 py-1 h-8 text-xs flex-1"
+                        className="px-1 py-1 h-7 text-xs"
                       >
                         <Eye className="h-3 w-3 mr-1" />
                         Pogl.
@@ -1963,7 +1963,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         onClick={() => handleEditOffer(offer)}
                         variant="outline" 
                         size="sm" 
-                        className="px-2 py-1 h-8 text-xs"
+                        className="px-1 py-1 h-7 text-xs"
                       >
                         <Edit className="h-3 w-3 mr-1" />
                         Edytuj
@@ -1972,7 +1972,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         onClick={() => handleViewApplications(offer)}
                         variant="outline" 
                         size="sm" 
-                        className="px-2 py-1 h-8 text-xs"
+                        className="px-1 py-1 h-7 text-xs"
                       >
                         <Users className="h-3 w-3 mr-1" />
                         Zgłosz.
@@ -1981,7 +1981,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         onClick={() => handleDeleteOffer(offer)}
                         variant="outline" 
                         size="sm" 
-                        className="px-2 py-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                        className="px-1 py-1 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
                       >
                         <Trash2 className="h-3 w-3 mr-1" />
                         Usuń
