@@ -2990,70 +2990,78 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
       {/* Volunteer Profile Modal */}
       {showVolunteerProfile && selectedVolunteer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold">Profil wolontariusza</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-xl">
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Profil wolontariusza</h3>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowVolunteerProfile(false)}
+                  className="h-8 w-8 p-0"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Basic Info */}
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarFallback className="bg-pink-100 text-pink-600 text-lg">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback className="bg-pink-100 text-pink-600 text-sm">
                       {selectedVolunteer.firstName?.[0]}{selectedVolunteer.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h4 className="text-lg font-semibold">
+                    <h4 className="text-base font-semibold">
                       {selectedVolunteer.firstName} {selectedVolunteer.lastName}
                     </h4>
-                    <p className="text-muted-foreground">{selectedVolunteer.email}</p>
+                    <p className="text-sm text-muted-foreground">{selectedVolunteer.email}</p>
                     {selectedVolunteer.school && (
-                      <p className="text-sm text-muted-foreground">{selectedVolunteer.school}</p>
+                      <p className="text-xs text-muted-foreground">{selectedVolunteer.school}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 bg-blue-50 rounded text-center">
+                    <div className="text-lg font-bold text-blue-600">
                       {selectedVolunteer.totalProjects || 0}
                     </div>
-                    <div className="text-sm text-blue-600">Projekty</div>
+                    <div className="text-xs text-blue-600">Projekty</div>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">
+                  <div className="p-2 bg-green-50 rounded text-center">
+                    <div className="text-lg font-bold text-green-600">
                       {selectedVolunteer.totalHours || 0}
                     </div>
-                    <div className="text-sm text-green-600">Godziny</div>
+                    <div className="text-xs text-green-600">Godziny</div>
+                  </div>
+                  <div className="p-2 bg-purple-50 rounded text-center">
+                    <div className="text-lg font-bold text-purple-600">
+                      {selectedVolunteer.averageRating || 'N/A'}
+                    </div>
+                    <div className="text-xs text-purple-600">Ocena</div>
                   </div>
                 </div>
 
                 {/* Badges */}
-                {selectedVolunteer.badges && (
-                  <div>
-                    <h5 className="text-lg font-semibold mb-3">Odznaki</h5>
-                    <div className="grid grid-cols-3 gap-3">
-                      {Object.entries(selectedVolunteer.badges).map(([badgeName, badgeData]: [string, any]) => (
+                <div>
+                  <h5 className="text-sm font-semibold mb-2">Odznaki</h5>
+                  <div className="grid grid-cols-4 gap-2">
+                    {Object.entries(selectedVolunteer.badges || {}).map(([badgeName, badgeData]: [string, any]) => {
+                      const isEarned = badgeData.earned || badgeData.isUnlocked;
+                      return (
                         <div
                           key={badgeName}
-                          className={`p-3 rounded-lg text-center ${
-                            badgeData.earned || badgeData.isUnlocked
-                              ? 'bg-yellow-50 border-2 border-yellow-200'
+                          className={`p-2 rounded-lg text-center ${
+                            isEarned
+                              ? 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300'
                               : 'bg-gray-50 border-2 border-gray-200'
                           }`}
                         >
-                          <div className="text-2xl mb-1">
+                          <div className="text-lg mb-1">
                             {badgeName === 'witaj' && '👋'}
                             {badgeName === 'aktywny' && '⚡'}
                             {badgeName === 'bohater' && '🦸'}
@@ -3085,20 +3093,20 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                             {badgeName === 'kulturowy' && 'Kulturowy'}
                             {badgeName === 'sportowy' && 'Sportowy'}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {badgeData.earned || badgeData.isUnlocked ? 'Zdobyta' : 'Niezdobyta'}
+                          <div className={`text-xs ${isEarned ? 'text-yellow-600' : 'text-gray-400'}`}>
+                            {isEarned ? '✓' : '○'}
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
 
                 {/* About */}
                 {selectedVolunteer.bio && (
                   <div>
-                    <h5 className="text-lg font-semibold mb-3">O sobie</h5>
-                    <p className="text-sm text-muted-foreground">{selectedVolunteer.bio}</p>
+                    <h5 className="text-sm font-semibold mb-2">O sobie</h5>
+                    <p className="text-xs text-muted-foreground line-clamp-3">{selectedVolunteer.bio}</p>
                   </div>
                 )}
               </div>
