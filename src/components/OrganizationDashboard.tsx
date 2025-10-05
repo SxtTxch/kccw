@@ -1031,13 +1031,10 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               </div>
 
               {/* Bounty System Section */}
-              <div className="border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg"></div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-green-800">System Nagród</h3>
-                    <p className="text-sm text-green-700">Zachęć wolontariuszy nagrodą pieniężną</p>
-                  </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1">System Nagród</h3>
+                  <p className="text-sm text-gray-600">Zachęć wolontariuszy nagrodą pieniężną</p>
                 </div>
 
                 <div className="space-y-4">
@@ -1047,9 +1044,9 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                       id="hasBounty"
                       checked={newOfferData.hasBounty}
                       onChange={(e) => handleOfferInputChange("hasBounty", e.target.checked)}
-                      className="w-5 h-5 text-green-600 bg-green-100 border-green-300 rounded focus:ring-green-500"
+                      className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
                     />
-                    <Label htmlFor="hasBounty" className="text-green-800 font-medium cursor-pointer">
+                    <Label htmlFor="hasBounty" className="text-gray-700 font-medium cursor-pointer">
                       Dodaj nagrodę pieniężną dla wolontariuszy
                     </Label>
                   </div>
@@ -1057,26 +1054,21 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                   {newOfferData.hasBounty && (
                     <div className="space-y-3">
                       <div className="space-y-2">
-                        <Label htmlFor="bountyAmount" className="text-green-800 font-medium">
+                        <Label htmlFor="bountyAmount" className="text-gray-700 font-medium">
                           Kwota nagrody (PLN) *
                         </Label>
-                        <div className="relative">
-                          <Input
-                            id="bountyAmount"
-                            type="number"
-                            placeholder="np. 100"
-                            value={newOfferData.bountyAmount}
-                            onChange={(e) => handleOfferInputChange("bountyAmount", e.target.value)}
-                            className="h-12 pl-8 text-lg font-semibold border-green-300 focus:border-green-500 focus:ring-green-500"
-                          />
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 font-bold">zł</span>
-                        </div>
+                        <Input
+                          id="bountyAmount"
+                          type="number"
+                          placeholder="np. 100"
+                          value={newOfferData.bountyAmount}
+                          onChange={(e) => handleOfferInputChange("bountyAmount", e.target.value)}
+                          className="h-12 text-lg font-semibold"
+                        />
                       </div>
-                      <div className="bg-gray-100 rounded-lg p-3">
-                        <p className="text-sm text-gray-600">
-                          Nagroda zostanie wypłacona po ukończeniu oferty przez wolontariusza.
-                        </p>
-                      </div>
+                      <p className="text-sm text-gray-500">
+                        Nagroda zostanie wypłacona po ukończeniu oferty przez wolontariusza.
+                      </p>
                     </div>
                   )}
                 </div>
