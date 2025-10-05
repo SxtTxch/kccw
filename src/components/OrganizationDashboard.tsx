@@ -767,6 +767,11 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     }));
   };
 
+  const handleProfileSave = (updatedUser: any) => {
+    setCurrentUser(updatedUser);
+    setIsEditingProfile(false);
+  };
+
   const submitVolunteerReview = () => {
     console.log("Nowa opinia dla wolontariusza:", selectedVolunteer?.firstName, selectedVolunteer?.lastName, reviewData);
     // Here you would normally save the review to backend
@@ -1592,6 +1597,17 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
           </Card>
         </div>
       </div>
+    );
+  }
+
+  // Show edit profile form
+  if (isEditingProfile) {
+    return (
+      <EditProfile 
+        user={currentUser}
+        onSave={handleProfileSave}
+        onCancel={() => setIsEditingProfile(false)}
+      />
     );
   }
 
