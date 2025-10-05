@@ -1246,7 +1246,10 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             </Button>
           ) : (
             <Button 
-              onClick={() => handleApplyToOffer(offer.id)}
+              onClick={() => {
+                console.log('Button clicked - userProfile:', userProfile?.id, 'offer participants:', offer.participants, 'is full:', offer.currentParticipants >= offer.maxParticipants);
+                handleApplyToOffer(offer.id);
+              }}
               className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90"
               disabled={offer.currentParticipants >= offer.maxParticipants}
             >
