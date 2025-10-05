@@ -1182,6 +1182,32 @@ export const updateApplicationStatus = async (applicationId: string, status: 'ac
   }
 };
 
+// Delete an offer
+export const deleteOffer = async (offerId: string): Promise<boolean> => {
+  try {
+    console.log('Deleting offer:', offerId);
+    
+    // Delete the offer document
+    const offerRef = doc(db, 'offers', offerId);
+    await deleteDoc(offerRef);
+    
+    // Also delete any applications for this offer
+    const applicationsRef = collection(db, 'applications');
+    const q = query(applicationsRef, where('offerId', '==', offerId));
+    const querySnapshot = await getDocs(q);
+    
+    // Delete all applications for this offer
+    const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+    
+    console.log('Offer and related applications deleted successfully');
+    return true;
+  } catch (error) {
+    console.error('Error deleting offer:', error);
+    return false;
+  }
+};
+
 // Get offer by ID
 export const getOfferById = async (offerId: string): Promise<Offer | null> => {
   try {

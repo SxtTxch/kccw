@@ -68,7 +68,7 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { useChat } from "../contexts/ChatContext";
-import { getOffersByOrganization, createOffer, getVolunteersFromOffers, getOfferApplications, updateApplicationStatus } from "../firebase/firestore";
+import { getOffersByOrganization, createOffer, getVolunteersFromOffers, getOfferApplications, updateApplicationStatus, deleteOffer } from "../firebase/firestore";
 import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 
 interface User {
@@ -393,6 +393,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [loadingApplications, setLoadingApplications] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loadingCalendarEvents, setLoadingCalendarEvents] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [offerToDelete, setOfferToDelete] = useState<Offer | null>(null);
   const [reviews] = useState<Review[]>(mockReviews);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -787,6 +789,33 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     } catch (error) {
       console.error('Error rejecting application:', error);
     }
+  };
+
+  const handleDeleteOffer = (offer: Offer) => {
+    setOfferToDelete(offer);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteOffer = async () => {
+    if (!offerToDelete) return;
+
+    try {
+      const success = await deleteOffer(offerToDelete.id.toString());
+      if (success) {
+        // Refresh offers list
+        const organizationOffers = await getOffersByOrganization(user.id.toString());
+        setOffers(organizationOffers);
+        setShowDeleteModal(false);
+        setOfferToDelete(null);
+      }
+    } catch (error) {
+      console.error('Error deleting offer:', error);
+    }
+  };
+
+  const cancelDeleteOffer = () => {
+    setShowDeleteModal(false);
+    setOfferToDelete(null);
   };
 
   // Get dates that have offers
@@ -1948,6 +1977,15 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         <Users className="h-3 w-3 mr-1" />
                         Zgłosz.
                       </Button>
+                      <Button 
+                        onClick={() => handleDeleteOffer(offer)}
+                        variant="outline" 
+                        size="sm" 
+                        className="px-2 py-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Usuń
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -2877,6 +2915,48 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       </div>
       
       <Chat userType={user.userType as "wolontariusz" | "koordynator" | "organizacja"} />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && offerToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Usuń ofertę</h3>
+                <p className="text-sm text-muted-foreground">Ta akcja jest nieodwracalna</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-muted-foreground mb-2">Czy na pewno chcesz usunąć ofertę:</p>
+              <p className="font-medium">{offerToDelete.title}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Wszystkie zgłoszenia do tej oferty również zostaną usunięte.
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={cancelDeleteOffer}
+                className="flex-1"
+              >
+                Anuluj
+              </Button>
+              <Button
+                onClick={confirmDeleteOffer}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Usuń ofertę
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
