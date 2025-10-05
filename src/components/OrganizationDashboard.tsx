@@ -1909,13 +1909,13 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             ) : filteredOffers.length > 0 ? (
               filteredOffers.map(offer => (
                 <Card key={offer.id} className="border-l-4 border-l-green-500">
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <CardTitle className="text-lg mb-1">{offer.title}</CardTitle>
                         <CardDescription className="mb-2">{offer.category}</CardDescription>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-col items-end gap-2">
                         <Badge className={`${getOfferStatusColor(offer.status)}`}>
                           {getOfferStatusLabel(offer.status)}
                         </Badge>
@@ -1945,7 +1945,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-2">
                     <p className="text-sm mb-3">{offer.description}</p>
                     
                     
