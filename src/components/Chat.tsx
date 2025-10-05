@@ -115,6 +115,20 @@ export function Chat({ userType }: ChatProps) {
 
   useEffect(() => {
     console.log('Messages updated:', messages);
+    console.log('=== CHAT COMPONENT RECEIVED MESSAGES ===');
+    messages.forEach((message, index) => {
+      console.log(`Chat Message ${index + 1}:`, {
+        id: message.id,
+        text: message.text,
+        senderId: message.senderId,
+        senderName: message.senderName,
+        receiverId: message.receiverId,
+        timestamp: message.timestamp,
+        status: message.status,
+        type: message.type
+      });
+    });
+    console.log('=== END CHAT COMPONENT MESSAGES ===');
     scrollToBottom();
   }, [messages]);
 

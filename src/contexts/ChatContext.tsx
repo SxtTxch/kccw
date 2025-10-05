@@ -118,6 +118,13 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     }
     
     console.log('Opening chat with contact:', contact.id, contact.name);
+    console.log('Contact details:', {
+      id: contact.id,
+      name: contact.name,
+      email: contact.email,
+      role: contact.role,
+      organization: contact.organization
+    });
     setCurrentContact(contact);
     setIsChatOpen(true);
     
@@ -273,6 +280,22 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       
       console.log('Filtered messages for conversation:', messagesData.length, 'messages');
       console.log('Messages data:', messagesData);
+      
+      // Print out all messages in a readable format
+      console.log('=== ALL DM MESSAGES ===');
+      messagesData.forEach((message, index) => {
+        console.log(`Message ${index + 1}:`, {
+          id: message.id,
+          text: message.text,
+          senderId: message.senderId,
+          senderName: message.senderName,
+          receiverId: message.receiverId,
+          timestamp: message.timestamp,
+          status: message.status,
+          type: message.type
+        });
+      });
+      console.log('=== END DM MESSAGES ===');
       
       setMessages(messagesData);
     } catch (error) {
