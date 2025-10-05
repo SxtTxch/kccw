@@ -111,7 +111,6 @@ interface Volunteer {
   lastName: string;
   email: string;
   age: number;
-  isMinor: boolean;
   school: string;
   experience: string;
   skills: string[];
@@ -151,19 +150,6 @@ interface CalendarEvent {
   status: 'scheduled' | 'completed' | 'cancelled';
 }
 
-interface Certificate {
-  id: number;
-  volunteerId: number;
-  volunteerName: string;
-  activityTitle: string;
-  hours: number;
-  startDate: string;
-  endDate: string;
-  status: 'pending' | 'approved' | 'rejected';
-  requestDate: string;
-  feedback?: string;
-  rating?: number;
-}
 
 interface Review {
   id: number;
@@ -251,7 +237,6 @@ const mockVolunteers: Volunteer[] = [
     lastName: "Kowalska",
     email: "anna.kowalska@email.com",
     age: 17,
-    isMinor: true,
     school: "XV LO Warszawa",
     experience: "6 miesięcy",
     skills: ["Praca z dziećmi", "Języki obce", "Pierwsza pomoc"],
@@ -270,7 +255,6 @@ const mockVolunteers: Volunteer[] = [
     lastName: "Nowak",
     email: "piotr.nowak@email.com",
     age: 19,
-    isMinor: false,
     school: "Politechnika Warszawska",
     experience: "1 rok",
     skills: ["Technologia", "Grafika", "Social media"],
@@ -289,7 +273,6 @@ const mockVolunteers: Volunteer[] = [
     lastName: "Wiśniewska",
     email: "maria.wisniewska@email.com",
     age: 16,
-    isMinor: true,
     school: "Gimnazjum nr 5",
     experience: "Nowy wolontariusz",
     skills: ["Kreatywność", "Rysowanie", "Muzyka"],
@@ -379,33 +362,6 @@ const mockCalendarEvents: CalendarEvent[] = [
   }
 ];
 
-const mockCertificates: Certificate[] = [
-  {
-    id: 1,
-    volunteerId: 1,
-    volunteerName: "Anna Kowalska",
-    activityTitle: "Opieka nad zwierzętami",
-    hours: 25,
-    startDate: "2024-09-01",
-    endDate: "2024-09-30",
-    status: 'pending',
-    requestDate: "2024-10-01",
-    rating: 4.8
-  },
-  {
-    id: 2,
-    volunteerId: 2,
-    volunteerName: "Piotr Nowak",
-    activityTitle: "Zajęcia komputerowe dla seniorów",
-    hours: 30,
-    startDate: "2024-08-15",
-    endDate: "2024-09-15",
-    status: 'approved',
-    requestDate: "2024-09-16",
-    feedback: "Bardzo zaangażowany, świetne efekty pracy z seniorami.",
-    rating: 4.9
-  }
-];
 
 const mockReviews: Review[] = [
   {
@@ -488,7 +444,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [loadingVolunteers, setLoadingVolunteers] = useState(true);
   const [applications] = useState<Application[]>(mockApplications);
   const [calendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
-  const [certificates] = useState<Certificate[]>(mockCertificates);
   const [reviews] = useState<Review[]>(mockReviews);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -631,14 +586,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     }
   };
 
-  const getCertificateStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getRoleColor = (role: string) => {
     switch (role.toLowerCase()) {
@@ -904,7 +851,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   });
 
   const pendingApplications = applications.filter(app => app.status === 'pending');
-  const pendingCertificates = certificates.filter(cert => cert.status === 'pending');
 
   // Statistics
   const stats = {
@@ -2076,7 +2022,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
-                        {volunteer.age} lat {volunteer.isMinor && "(młodzi)"}
+                        {volunteer.age} lat
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
@@ -2284,109 +2230,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             </Card>
           </TabsContent>
 
-          {/* Certificates Tab */}
-          <TabsContent value="certificates" className="space-y-4">
-            <div className="text-center mb-6">
-              <h2 className="mb-2">Zaświadczenia</h2>
-              <p className="text-sm text-muted-foreground">Zatwierdzanie zaświadczeń wolontariuszy</p>
-            </div>
-
-            {/* Pending Certificates Alert */}
-            {pendingCertificates.length > 0 && (
-              <Card className="border-yellow-200 bg-yellow-50">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-yellow-600" />
-                    <div>
-                      <h4 className="text-yellow-800 mb-1">Oczekujące zaświadczenia</h4>
-                      <p className="text-sm text-yellow-700">
-                        {pendingCertificates.length} zaświadczenie{pendingCertificates.length > 1 ? 'ń' : ''} do zatwierdzenia
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Certificates List */}
-            {certificates.length > 0 ? (
-              certificates.map(cert => (
-                <Card key={cert.id} className="border-l-4 border-l-green-500">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg mb-1">{cert.volunteerName}</CardTitle>
-                        <CardDescription className="mb-2">{cert.activityTitle}</CardDescription>
-                      </div>
-                      <Badge className={`${getCertificateStatusColor(cert.status)}`}>
-                        {cert.status === 'pending' ? 'Oczekuje' : 
-                         cert.status === 'approved' ? 'Zatwierdzone' : 'Odrzucone'}
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {cert.hours} godzin
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4" />
-                        {cert.rating}/5.0
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(cert.startDate).toLocaleDateString('pl-PL')} - {new Date(cert.endDate).toLocaleDateString('pl-PL')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <FileText className="h-4 w-4" />
-                        {new Date(cert.requestDate).toLocaleDateString('pl-PL')}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="pt-0">
-                    {cert.feedback && (
-                      <div className="mb-3 p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm">{cert.feedback}</p>
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-2">
-                      {cert.status === 'pending' ? (
-                        <>
-                          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Zatwierdź
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 border-red-200">
-                            Odrzuć
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <Eye className="h-4 w-4 mr-2" />
-                            Podgląd
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="h-4 w-4 mr-2" />
-                            PDF
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <FileCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Brak zaświadczeń do przeglądu</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
 
           {/* Management Tab (Reports, Certificates, Map) */}
           <TabsContent value="reports" className="space-y-4">
@@ -2403,8 +2246,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     <TabsTrigger value="reports-section">Raporty</TabsTrigger>
                     <TabsTrigger value="members-section">Członkowie</TabsTrigger>
                   </TabsList>
-                  <TabsList className="grid w-full grid-cols-2 mt-1">
-                    <TabsTrigger value="certificates-section">Zaświadczenia</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-1 mt-1">
                     <TabsTrigger value="map-section">Mapa</TabsTrigger>
                   </TabsList>
                   
@@ -2747,12 +2589,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     )}
                   </TabsContent>
 
-                  <TabsContent value="certificates-section" className="mt-4">
-                    {/* Zaświadczenia zostają przeniesione z oryginalnej sekcji */}
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Pełna funkcjonalność zaświadczeń dostępna wkrótce</p>
-                    </div>
-                  </TabsContent>
                   
                   <TabsContent value="map-section" className="mt-4">
                     <MapView userType="organizacja" />
@@ -2950,7 +2786,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             <button
               onClick={() => setActiveTab("reports")}
               className={`flex flex-col items-center justify-center gap-1 transition-colors ${
-                activeTab === "reports" || activeTab === "certificates" || activeTab === "map"
+                activeTab === "reports" || activeTab === "map"
                   ? "text-green-600 bg-green-50" 
                   : "text-gray-500 hover:text-gray-700"
               }`}
