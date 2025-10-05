@@ -740,16 +740,31 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   // Certificate application management
   const handleCertificateApproval = async (applicationId: string, approved: boolean, rejectionReason?: string) => {
     try {
-      const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+      const { doc, updateDoc, serverTimestamp, getDoc } = await import('firebase/firestore');
       const { db } = await import('../firebase/config');
       
+      // Get the application to find the student ID
       const applicationRef = doc(db, 'certificateApplications', applicationId);
+      const applicationDoc = await getDoc(applicationRef);
+      const applicationData = applicationDoc.data();
+      
+      // Update the application status
       await updateDoc(applicationRef, {
         status: approved ? 'approved' : 'rejected',
         processedAt: serverTimestamp(),
         coordinatorId: userProfile?.id,
         rejectionReason: approved ? null : rejectionReason
       });
+
+      // Update the student's certificate status in their user document
+      if (applicationData?.studentId) {
+        const studentRef = doc(db, 'users', applicationData.studentId);
+        await updateDoc(studentRef, {
+          certificateStatus: approved ? 'approved' : 'rejected',
+          certificateProcessedAt: serverTimestamp(),
+          certificateProcessedBy: userProfile?.id
+        });
+      }
 
       // Refresh applications
       const applicationsRef = collection(db, 'certificateApplications');
@@ -765,6 +780,11 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
       });
       
       setCertificateApplications(applications);
+      
+      // Also refresh students data to update their certificate status
+      const updatedStudents = await getStudentsBySchool(userProfile?.schoolName || '');
+      setStudents(updatedStudents);
+      
     } catch (error) {
       console.error('Error processing certificate application:', error);
     }
@@ -1503,6 +1523,31 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                               <XCircle className="h-4 w-4 mr-1" />
                               Odrzuć
                             </Button>
+                            {application.pdfData && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  // Open PDF in new window
+                                  const pdfWindow = window.open();
+                                  if (pdfWindow) {
+                                    pdfWindow.document.write(`
+                                      <html>
+                                        <head><title>Zaświadczenie - ${application.studentName}</title></head>
+                                        <body style="margin:0; padding:0;">
+                                          <iframe src="${application.pdfData}" width="100%" height="100%" style="border:none;"></iframe>
+                                        </body>
+                                      </html>
+                                    `);
+                                    pdfWindow.document.close();
+                                  }
+                                }}
+                                className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                              >
+                                <Download className="h-4 w-4 mr-1" />
+                                Zobacz PDF
+                              </Button>
+                            )}
                           </div>
                         )}
                         

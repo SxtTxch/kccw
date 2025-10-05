@@ -540,16 +540,52 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       // Date
       doc.text(convertPolishToAscii(`Data zlozenia wniosku: ${new Date().toLocaleDateString('pl-PL')}`), 20, 200);
       
-      // Save the PDF
+      // Generate PDF as base64 string
+      const pdfBase64 = doc.output('datauristring');
+      
+      // Save the PDF locally
       const fileName = `wniosek_zaswiadczenie_${convertPolishToAscii(userProfile?.firstName || '')}_${convertPolishToAscii(userProfile?.lastName || '')}.pdf`;
       doc.save(fileName);
       
-      // Submit to coordinator (simulate submission)
-      setCertificateStatus('pending');
-      console.log('Certificate application submitted to coordinator');
-      
-      // Here you would normally send to Firebase and notify coordinator
-      // For now, we'll just update the local state
+      // Submit to coordinator via Firebase
+      try {
+        const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+        const { db } = await import('../firebase/config');
+        
+        const certificateApplication = {
+          studentId: userProfile?.id,
+          studentName: `${userProfile?.firstName} ${userProfile?.lastName}`,
+          studentEmail: userProfile?.email,
+          schoolName: userProfile?.schoolName,
+          birthDate: userProfile?.birthDate,
+          phone: userProfile?.phone,
+          pdfData: pdfBase64,
+          status: 'pending',
+          submittedAt: serverTimestamp(),
+          projectTitle: 'Wniosek o zaświadczenie wolontariatu',
+          projectDescription: 'Uczestnictwo w programie wolontariatu młodzieżowego',
+          volunteerHours: 0,
+          startDate: new Date().toISOString(),
+          endDate: new Date().toISOString(),
+          achievements: 'Zgłoszenie zaświadczenia',
+          skills: ['Wolontariat młodzieżowy']
+        };
+        
+        await addDoc(collection(db, 'certificateApplications'), certificateApplication);
+        
+        setCertificateStatus('pending');
+        console.log('Certificate application submitted to coordinator');
+        
+        // Update user's certificate status in Firebase
+        const { doc: userDoc, updateDoc } = await import('firebase/firestore');
+        const userRef = userDoc(db, 'users', userProfile?.id || '');
+        await updateDoc(userRef, {
+          certificateStatus: 'pending'
+        });
+        
+      } catch (error) {
+        console.error('Error submitting certificate application:', error);
+      }
       
     } catch (error) {
       console.error('Error generating certificate application:', error);
