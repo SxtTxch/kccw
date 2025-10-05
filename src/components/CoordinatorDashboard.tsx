@@ -54,6 +54,7 @@ import {
   generateOrganizationsReport, 
   generateCertificatesReport 
 } from "../utils/reportGenerator";
+import { CertificateApplication } from "./CertificateApplication";
 import { getStudentsBySchool, getAllUsers, getAllOffers } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
@@ -384,6 +385,8 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   const [currentUser, setCurrentUser] = useState(user);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
+  const [certificateApplications, setCertificateApplications] = useState<any[]>([]);
+  const [loadingCertificates, setLoadingCertificates] = useState(false);
 
   // Fetch students from Firebase
   useEffect(() => {
@@ -513,6 +516,40 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
 
     fetchCalendarEvents();
   }, []);
+
+  // Fetch certificate applications
+  useEffect(() => {
+    const fetchCertificateApplications = async () => {
+      try {
+        setLoadingCertificates(true);
+        const { collection, getDocs, query, where } = await import('firebase/firestore');
+        const { db } = await import('../firebase/config');
+        
+        const applicationsRef = collection(db, 'certificateApplications');
+        const q = query(applicationsRef, where('schoolName', '==', userProfile?.schoolName));
+        const querySnapshot = await getDocs(q);
+        
+        const applications: any[] = [];
+        querySnapshot.forEach((doc) => {
+          applications.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        
+        console.log('Fetched certificate applications:', applications);
+        setCertificateApplications(applications);
+      } catch (error) {
+        console.error('Error fetching certificate applications:', error);
+      } finally {
+        setLoadingCertificates(false);
+      }
+    };
+
+    if (userProfile?.schoolName) {
+      fetchCertificateApplications();
+    }
+  }, [userProfile?.schoolName]);
 
   // Helper functions
   const formatNumber = (num: number) => {
@@ -666,6 +703,39 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
     setIsEditingProfile(false);
   };
 
+  // Certificate application management
+  const handleCertificateApproval = async (applicationId: string, approved: boolean, rejectionReason?: string) => {
+    try {
+      const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../firebase/config');
+      
+      const applicationRef = doc(db, 'certificateApplications', applicationId);
+      await updateDoc(applicationRef, {
+        status: approved ? 'approved' : 'rejected',
+        processedAt: serverTimestamp(),
+        coordinatorId: userProfile?.id,
+        rejectionReason: approved ? null : rejectionReason
+      });
+
+      // Refresh applications
+      const applicationsRef = collection(db, 'certificateApplications');
+      const q = query(applicationsRef, where('schoolName', '==', userProfile?.schoolName));
+      const querySnapshot = await getDocs(q);
+      
+      const applications: any[] = [];
+      querySnapshot.forEach((doc) => {
+        applications.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      setCertificateApplications(applications);
+    } catch (error) {
+      console.error('Error processing certificate application:', error);
+    }
+  };
+
   if (isEditingProfile) {
     return (
       <EditProfile 
@@ -702,6 +772,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   });
 
   const pendingCertificates = certificates.filter(cert => cert.status === 'pending');
+  const pendingApplications = certificateApplications.filter(app => app.status === 'pending');
 
   // Statistics - all connected to real Firebase data
   const stats = {
@@ -1211,21 +1282,131 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
               <p className="text-sm text-muted-foreground">Zatwierdzanie zaświadczeń o wolontariacie</p>
             </div>
 
-            {/* Pending Certificates Alert */}
-            {pendingCertificates.length > 0 && (
-              <Card className="border-yellow-200 bg-yellow-50">
+            {/* Pending Applications Alert */}
+            {pendingApplications.length > 0 && (
+              <Card className="border-blue-200 bg-blue-50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                    <AlertCircle className="h-5 w-5 text-blue-600" />
                     <div>
-                      <h4 className="text-yellow-800 mb-1">Oczekujące zaświadczenia</h4>
-                      <p className="text-sm text-yellow-700">
-                        {pendingCertificates.length} zaświadczenie{pendingCertificates.length > 1 ? 'ń' : ''} oczekuje na zatwierdzenie
+                      <h4 className="text-blue-800 mb-1">Nowe wnioski o zaświadczenia</h4>
+                      <p className="text-sm text-blue-700">
+                        {pendingApplications.length} wniosek{pendingApplications.length > 1 ? 'ów' : ''} oczekuje na rozpatrzenie
                       </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Certificate Applications List */}
+            {certificateApplications.length > 0 ? (
+              <div className="space-y-4">
+                {certificateApplications.map((application) => (
+                  <Card key={application.id} className={`border-l-4 ${
+                    application.status === 'pending' ? 'border-l-blue-500' :
+                    application.status === 'approved' ? 'border-l-green-500' : 'border-l-red-500'
+                  }`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg mb-1">{application.studentName}</CardTitle>
+                          <CardDescription className="mb-2">{application.projectTitle}</CardDescription>
+                        </div>
+                        <Badge className={`${
+                          application.status === 'pending' ? 'bg-blue-100 text-blue-800' :
+                          application.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {application.status === 'pending' ? 'Oczekuje' : 
+                           application.status === 'approved' ? 'Zatwierdzone' : 'Odrzucone'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {application.volunteerHours} godzin
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(application.startDate).toLocaleDateString('pl-PL')} - {new Date(application.endDate).toLocaleDateString('pl-PL')}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        <div>
+                          <h5 className="text-sm font-medium mb-1">Opis projektu:</h5>
+                          <p className="text-sm text-muted-foreground">{application.projectDescription}</p>
+                        </div>
+                        
+                        {application.achievements && (
+                          <div>
+                            <h5 className="text-sm font-medium mb-1">Osiągnięcia:</h5>
+                            <p className="text-sm text-muted-foreground">{application.achievements}</p>
+                          </div>
+                        )}
+                        
+                        {application.skills && application.skills.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium mb-1">Umiejętności:</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {application.skills.map((skill: string, index: number) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {skill}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {application.status === 'pending' && (
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleCertificateApproval(application.id, true)}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Zatwierdź
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                const reason = prompt('Podaj powód odrzucenia:');
+                                if (reason) {
+                                  handleCertificateApproval(application.id, false, reason);
+                                }
+                              }}
+                              className="border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Odrzuć
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {application.status === 'rejected' && application.rejectionReason && (
+                          <div className="bg-red-50 border border-red-200 rounded p-2">
+                            <h5 className="text-sm font-medium text-red-800 mb-1">Powód odrzucenia:</h5>
+                            <p className="text-sm text-red-700">{application.rejectionReason}</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Brak wniosków o zaświadczenia</h3>
+                <p className="text-sm text-muted-foreground">
+                  Uczniowie mogą składać wnioski o zaświadczenia w swoich profilach.
+                </p>
+              </div>
             )}
 
             {/* Certificates List */}

@@ -48,6 +48,7 @@ import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
+import { CertificateApplication } from "./CertificateApplication";
 import MyApplications from "./MyApplications";
 import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge, getUserOffers, getOfferById } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
@@ -1795,6 +1796,17 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                           </div>
                         </CardContent>
                       </Card>
+                    )}
+
+                    {/* Certificate Application for Minors */}
+                    {user.isMinor && (
+                      <CertificateApplication 
+                        userProfile={userProfile}
+                        onApplicationSubmitted={() => {
+                          // Refresh data or show success message
+                          console.log('Certificate application submitted');
+                        }}
+                      />
                     )}
 
                     <Card>
