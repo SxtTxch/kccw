@@ -3075,50 +3075,39 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 <div>
                   <h5 className="text-xs font-semibold mb-1">Odznaki</h5>
                   <div className="grid grid-cols-6 gap-1">
-                    {Object.entries(selectedVolunteer.badges || {}).map(([badgeName, badgeData]: [string, any]) => {
-                      const isEarned = badgeData.earned || badgeData.isUnlocked;
-                      return (
+                    {(() => {
+                      // Define all badges with proper icons, colors, and names
+                      const allBadges = [
+                        { key: 'witaj', name: 'Witaj!', icon: '👋', color: 'from-green-500 to-green-600', earned: selectedVolunteer.badges?.witaj?.earned || selectedVolunteer.badges?.witaj?.isUnlocked || false },
+                        { key: 'pierwszyKrok', name: 'Pierwszy Krok', icon: '🎯', color: 'from-blue-500 to-blue-600', earned: (selectedVolunteer.totalHours || 0) >= 1 },
+                        { key: 'zaangazowany', name: 'Zaangażowany', icon: '💪', color: 'from-pink-500 to-pink-600', earned: (selectedVolunteer.totalHours || 0) >= 10 },
+                        { key: 'wytrwaly', name: 'Wytrwały', icon: '🏅', color: 'from-purple-500 to-purple-600', earned: (selectedVolunteer.totalHours || 0) >= 50 },
+                        { key: 'bohater', name: 'Bohater', icon: '👑', color: 'from-yellow-500 to-orange-500', earned: (selectedVolunteer.totalHours || 0) >= 100 },
+                        { key: 'debiutant', name: 'Debiutant', icon: '⭐', color: 'from-indigo-500 to-indigo-600', earned: (selectedVolunteer.totalProjects || 0) >= 1 },
+                        { key: 'aktywny', name: 'Aktywny', icon: '❤️', color: 'from-red-500 to-red-600', earned: (selectedVolunteer.totalProjects || 0) >= 5 },
+                        { key: 'mistrz', name: 'Mistrz', icon: '🏆', color: 'from-amber-500 to-amber-600', earned: (selectedVolunteer.totalProjects || 0) >= 15 },
+                        { key: 'konsekwentny', name: 'Konsekwentny', icon: '🏅', color: 'from-teal-500 to-teal-600', earned: (selectedVolunteer.currentStreak || 0) >= 3 },
+                        { key: 'niezdomny', name: 'Niezłomny', icon: '👑', color: 'from-cyan-500 to-cyan-600', earned: (selectedVolunteer.currentStreak || 0) >= 7 },
+                        { key: 'mentor', name: 'Mentor', icon: '⭐', color: 'from-blue-600 to-blue-800', earned: (selectedVolunteer.specialAchievements || 0) >= 1 },
+                        { key: 'ambasador', name: 'Ambasador', icon: '❤️', color: 'from-purple-600 to-purple-800', earned: (selectedVolunteer.specialAchievements || 0) >= 3 },
+                        { key: 'pomocnik', name: 'Pomocnik', icon: '🏅', color: 'from-emerald-500 to-emerald-600', earned: (selectedVolunteer.impactPoints || 0) >= 100 },
+                        { key: 'zmiana', name: 'Zmiana', icon: '🏆', color: 'from-red-600 to-red-800', earned: (selectedVolunteer.impactPoints || 0) >= 500 }
+                      ];
+
+                      return allBadges.map((badge) => (
                         <div
-                          key={badgeName}
-                          className={`p-1 rounded text-center ${
-                            isEarned
-                              ? 'bg-yellow-100 border border-yellow-300'
-                              : 'bg-gray-100 border border-gray-300'
+                          key={badge.key}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${
+                            badge.earned
+                              ? `bg-gradient-to-br ${badge.color} text-white shadow-md`
+                              : 'bg-gray-200 text-gray-400'
                           }`}
-                          title={badgeName === 'witaj' ? 'Witaj!' :
-                                 badgeName === 'aktywny' ? 'Aktywny' :
-                                 badgeName === 'bohater' ? 'Bohater' :
-                                 badgeName === 'pomocnik' ? 'Pomocnik' :
-                                 badgeName === 'zmiana' ? 'Zmiana' :
-                                 badgeName === 'mentor' ? 'Mentor' :
-                                 badgeName === 'ambasador' ? 'Ambasador' :
-                                 badgeName === 'debiutant' ? 'Debiutant' :
-                                 badgeName === 'zaangazowany' ? 'Zaangażowany' :
-                                 badgeName === 'epicki' ? 'Epicki' :
-                                 badgeName === 'niezdomny' ? 'Niezłomny' :
-                                 badgeName === 'eko' ? 'Eko' :
-                                 badgeName === 'kulturowy' ? 'Kulturowy' :
-                                 badgeName === 'sportowy' ? 'Sportowy' : badgeName}
+                          title={badge.name}
                         >
-                          <div className="text-sm">
-                            {badgeName === 'witaj' && '👋'}
-                            {badgeName === 'aktywny' && '⚡'}
-                            {badgeName === 'bohater' && '🦸'}
-                            {badgeName === 'pomocnik' && '🤝'}
-                            {badgeName === 'zmiana' && '🌱'}
-                            {badgeName === 'mentor' && '🎓'}
-                            {badgeName === 'ambasador' && '🌟'}
-                            {badgeName === 'debiutant' && '🆕'}
-                            {badgeName === 'zaangazowany' && '💪'}
-                            {badgeName === 'epicki' && '🏆'}
-                            {badgeName === 'niezdomny' && '🏠'}
-                            {badgeName === 'eko' && '🌍'}
-                            {badgeName === 'kulturowy' && '🎭'}
-                            {badgeName === 'sportowy' && '⚽'}
-                          </div>
+                          {badge.icon}
                         </div>
-                      );
-                    })}
+                      ));
+                    })()}
                   </div>
                 </div>
               </div>
