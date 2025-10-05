@@ -843,13 +843,12 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         // Use Firestore's volunteerHours field
         const totalHours = volunteerData.volunteerHours || 0;
         
-        // Fetch all received opinions to calculate average rating
+        // Fetch received opinions from user's document structure
         let averageRating = 0;
         let receivedOpinionsCount = 0;
         try {
-          const opinionsRef = collection(db, 'opinions');
-          const opinionsQuery = query(opinionsRef, where('targetUserId', '==', volunteerId));
-          const opinionsSnap = await getDocs(opinionsQuery);
+          const receivedOpinionsRef = collection(db, 'users', volunteerId, 'receivedOpinions');
+          const opinionsSnap = await getDocs(receivedOpinionsRef);
           
           if (!opinionsSnap.empty) {
             let totalRating = 0;
@@ -868,6 +867,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         } catch (opinionsError) {
           console.error('Error fetching received opinions:', opinionsError);
         }
+
+        console.log(averageRating);
         
         // Update volunteer data with calculated values
         const updatedVolunteerData = {
