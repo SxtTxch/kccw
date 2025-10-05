@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useChat } from '../contexts/ChatContext';
 import { 
   Search, 
   MapPin, 
@@ -100,11 +101,9 @@ export function Offers() {
   };
 
   const handleChat = (offer: Offer) => {
-    // Open email client with pre-filled message
-    const subject = `Zapytanie dotyczące oferty: ${offer.title}`;
-    const body = `Dzień dobry,\n\nInteresuje mnie oferta "${offer.title}" organizowana przez ${offer.organization}.\n\nProszę o więcej informacji.\n\nPozdrawiam`;
-    const mailtoLink = `mailto:${offer.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink);
+    // Open chat with the organization's email
+    const { openChat } = useChat();
+    openChat(undefined, offer.contactEmail);
   };
 
   const filteredOffers = offers.filter(offer => {

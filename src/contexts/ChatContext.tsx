@@ -44,7 +44,7 @@ interface ChatContextType {
   messages: Message[];
   contacts: ChatContact[];
   conversations: ChatContact[];
-  openChat: (contact?: ChatContact) => void;
+  openChat: (contact?: ChatContact, targetEmail?: string) => void;
   closeChat: () => void;
   sendMessage: (text: string, receiverId: string) => Promise<void>;
   searchUserByEmail: (email: string) => Promise<ChatContact[]>;
@@ -52,6 +52,7 @@ interface ChatContextType {
   loadConversations: () => Promise<void>;
   loadMessages: (contactId: string) => Promise<void>;
   markMessagesAsRead: (contactId: string) => Promise<void>;
+  targetEmail: string | null;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -77,6 +78,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [unsubscribeMessages, setUnsubscribeMessages] = useState<(() => void) | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [targetEmail, setTargetEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const userId = localStorage.getItem('currentUserId');
@@ -93,8 +95,8 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     };
   }, [unsubscribeMessages]);
 
-  const openChat = (contact?: ChatContact) => {
-    console.log('Opening chat with:', contact);
+  const openChat = (contact?: ChatContact, targetEmail?: string) => {
+    console.log('Opening chat with:', contact, 'targetEmail:', targetEmail);
     console.log('Current user ID:', currentUserId);
     
     // Prevent multiple rapid calls
@@ -114,6 +116,14 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       setCurrentContact(null);
       setIsChatOpen(true);
       setMessages([]);
+      
+      // If targetEmail is provided, set it in the search field
+      if (targetEmail) {
+        console.log('Setting target email in search:', targetEmail);
+        // We'll need to pass this to the Chat component somehow
+        // For now, we'll store it in a way the Chat component can access
+        setTargetEmail(targetEmail);
+      }
       return;
     }
     
@@ -561,6 +571,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     loadConversations,
     loadMessages,
     markMessagesAsRead,
+    targetEmail,
   };
 
   return (

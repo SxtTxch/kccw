@@ -40,7 +40,8 @@ export function Chat({ userType }: ChatProps) {
     loadContacts,
     loadConversations,
     loadMessages,
-    markMessagesAsRead
+    markMessagesAsRead,
+    targetEmail
   } = useChat();
   const { userProfile } = useAuth();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -51,6 +52,16 @@ export function Chat({ userType }: ChatProps) {
     console.log('Chat component - currentUserId from localStorage:', userId);
     setCurrentUserId(userId);
   }, []);
+
+  // Auto-populate search email when targetEmail is provided
+  useEffect(() => {
+    if (targetEmail && isChatOpen && !currentContact) {
+      console.log('Auto-populating search email with:', targetEmail);
+      setSearchEmail(targetEmail);
+      // Automatically search for the user
+      handleSearchUser(targetEmail);
+    }
+  }, [targetEmail, isChatOpen, currentContact]);
   const [isMinimized, setIsMinimized] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [searchEmail, setSearchEmail] = useState("");
