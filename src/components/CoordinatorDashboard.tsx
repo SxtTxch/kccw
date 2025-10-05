@@ -1672,7 +1672,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-2 bg-gray-200 rounded-full">
                                 <div 
-                                  className="h-2 bg-orange-500 rounded-full transition-all duration-300"
+                                  className="h-2 bg-yellow-500 rounded-full transition-all duration-300"
                                   style={{ 
                                     width: `${stats.averageRating > 0 ? (stats.averageRating / 5) * 100 : 0}%` 
                                   }}
