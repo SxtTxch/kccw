@@ -639,6 +639,12 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     try {
       console.log("Creating new offer:", newOfferData);
       
+      // Validate minimum participants
+      if (!newOfferData.maxParticipants || parseInt(newOfferData.maxParticipants) < 2) {
+        alert("Liczba wolontariuszy musi wynosić co najmniej 2");
+        return;
+      }
+      
       // Prepare offer data for Firebase
       const offerData = {
         title: newOfferData.title,
@@ -957,6 +963,12 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         return;
       }
 
+      // Validate minimum participants
+      if (!editOfferData.maxParticipants || parseInt(editOfferData.maxParticipants) < 2) {
+        alert("Liczba wolontariuszy musi wynosić co najmniej 2");
+        return;
+      }
+
       // Update the offer in Firebase
       const { doc, updateDoc } = await import('firebase/firestore');
       const { db } = await import('../firebase/config');
@@ -1179,7 +1191,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                   <Input
                     id="maxParticipants"
                     type="number"
-                    placeholder="np. 10"
+                    min="2"
+                    placeholder="np. 10 (minimum 2)"
                     value={newOfferData.maxParticipants}
                     onChange={(e) => handleOfferInputChange("maxParticipants", e.target.value)}
                     className="h-12"
@@ -1255,7 +1268,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 <Button
                   onClick={submitOffer}
                   className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90"
-                  disabled={!newOfferData.title || !newOfferData.category || !newOfferData.description || !newOfferData.startDate || !newOfferData.maxParticipants || parseInt(newOfferData.maxParticipants) <= 0 || (newOfferData.hasBounty && !newOfferData.bountyAmount)}
+                  disabled={!newOfferData.title || !newOfferData.category || !newOfferData.description || !newOfferData.startDate || !newOfferData.maxParticipants || parseInt(newOfferData.maxParticipants) < 2 || (newOfferData.hasBounty && !newOfferData.bountyAmount)}
                 >
                   Utwórz ofertę
                 </Button>
@@ -1476,7 +1489,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                   <Input
                     id="editMaxVolunteers"
                     type="number"
-                    placeholder="np. 10"
+                    min="2"
+                    placeholder="(minimum 2)"
                     value={editOfferData.maxParticipants || ''}
                     onChange={(e) => handleEditOfferInputChange("maxParticipants", e.target.value)}
                     className="h-12"
