@@ -67,6 +67,7 @@ import {
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
+import { DeleteAccountButton } from './DeleteAccountButton';
 import { EditProfile } from "./EditProfile";
 import { useChat } from "../contexts/ChatContext";
 import { getOffersByOrganization, createOffer, getVolunteersFromOffers, getOfferApplications, updateApplicationStatus, deleteOffer } from "../firebase/firestore";
@@ -1192,7 +1193,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     id="maxParticipants"
                     type="number"
                     min="2"
-                    placeholder="np. 10 (minimum 2)"
+                    placeholder="(minimum 2)"
                     value={newOfferData.maxParticipants}
                     onChange={(e) => handleOfferInputChange("maxParticipants", e.target.value)}
                     className="h-12"
@@ -1916,6 +1917,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             >
               <MessageCircle className="h-5 w-5" />
             </Button>
+            <DeleteAccountButton className="mr-2" />
             <Button variant="ghost" size="icon" onClick={onLogout}>
               <LogOut className="h-5 w-5" />
             </Button>

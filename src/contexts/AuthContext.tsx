@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<boolean>;
   validateUserType: (expectedUserType: string) => boolean;
 }
 
@@ -93,6 +94,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await signOutUser();
   };
 
+  const deleteAccount = async (): Promise<boolean> => {
+    if (!user || !userProfile?.id) {
+      console.error('No user or user profile to delete');
+      return false;
+    }
+
+    try {
+      // Delete from Firestore first
+      const { deleteUserAccount } = await import('../firebase/firestore');
+      const firestoreSuccess = await deleteUserAccount(userProfile.id);
+      
+      if (!firestoreSuccess) {
+        console.error('Failed to delete user data from Firestore');
+        return false;
+      }
+
+      // Delete from Firebase Auth
+      const { deleteUser } = await import('firebase/auth');
+      await deleteUser(user);
+      
+      console.log('Account deleted successfully');
+      return true;
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      return false;
+    }
+  };
+
   const validateUserType = (expectedUserType: string): boolean => {
     if (!userProfile) return false;
     return userProfile.userType === expectedUserType;
@@ -105,6 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     logout,
+    deleteAccount,
     validateUserType,
   };
 

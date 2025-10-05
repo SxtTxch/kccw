@@ -1790,4 +1790,101 @@ export const getCertificateApplications = async (studentId: string) => {
   }
 };
 
+// Delete user account and all related data
+export const deleteUserAccount = async (userId: string): Promise<boolean> => {
+  try {
+    console.log('Starting account deletion for user:', userId);
+    const { db } = await import('./config');
+    const { doc, deleteDoc, collection, query, where, getDocs, writeBatch } = await import('firebase/firestore');
+    
+    const batch = writeBatch(db);
+    
+    // 1. Delete user's offers (if they're an organization)
+    const offersRef = collection(db, 'offers');
+    const userOffersQuery = query(offersRef, where('organizationId', '==', userId));
+    const userOffersSnap = await getDocs(userOffersQuery);
+    
+    userOffersSnap.forEach((offerDoc) => {
+      batch.delete(offerDoc.ref);
+    });
+    
+    // 2. Delete applications where user is the volunteer
+    const applicationsRef = collection(db, 'applications');
+    const volunteerApplicationsQuery = query(applicationsRef, where('volunteerId', '==', userId));
+    const volunteerApplicationsSnap = await getDocs(volunteerApplicationsQuery);
+    
+    volunteerApplicationsSnap.forEach((appDoc) => {
+      batch.delete(appDoc.ref);
+    });
+    
+    // 3. Delete opinions given by this user
+    const opinionsRef = collection(db, 'opinions');
+    const givenOpinionsQuery = query(opinionsRef, where('authorId', '==', userId));
+    const givenOpinionsSnap = await getDocs(givenOpinionsQuery);
+    
+    givenOpinionsSnap.forEach((opinionDoc) => {
+      batch.delete(opinionDoc.ref);
+    });
+    
+    // 4. Delete opinions received by this user (from other users' receivedOpinions)
+    const allUsersRef = collection(db, 'users');
+    const allUsersSnap = await getDocs(allUsersRef);
+    
+    for (const userDoc of allUsersSnap.docs) {
+      const userData = userDoc.data();
+      if (userData.receivedOpinions && userData.receivedOpinions.opinions) {
+        const filteredOpinions = userData.receivedOpinions.opinions.filter(
+          (opinion: any) => opinion.targetUserId !== userId
+        );
+        
+        if (filteredOpinions.length !== userData.receivedOpinions.opinions.length) {
+          batch.update(userDoc.ref, {
+            'receivedOpinions.opinions': filteredOpinions,
+            'receivedOpinions.totalOpinions': filteredOpinions.length
+          });
+        }
+      }
+    }
+    
+    // 5. Delete certificate applications
+    const certificatesRef = collection(db, 'certificateApplications');
+    const userCertificatesQuery = query(certificatesRef, where('studentId', '==', userId));
+    const userCertificatesSnap = await getDocs(userCertificatesQuery);
+    
+    userCertificatesSnap.forEach((certDoc) => {
+      batch.delete(certDoc.ref);
+    });
+    
+    // 6. Delete chat messages where user is sender or receiver
+    const messagesRef = collection(db, 'messages');
+    const userMessagesQuery = query(messagesRef, where('senderId', '==', userId));
+    const userMessagesSnap = await getDocs(userMessagesQuery);
+    
+    userMessagesSnap.forEach((msgDoc) => {
+      batch.delete(msgDoc.ref);
+    });
+    
+    // Also delete messages where user is receiver
+    const receivedMessagesQuery = query(messagesRef, where('receiverId', '==', userId));
+    const receivedMessagesSnap = await getDocs(receivedMessagesQuery);
+    
+    receivedMessagesSnap.forEach((msgDoc) => {
+      batch.delete(msgDoc.ref);
+    });
+    
+    // 7. Finally, delete the user document
+    const userRef = doc(db, 'users', userId);
+    batch.delete(userRef);
+    
+    // Execute all deletions
+    await batch.commit();
+    
+    console.log('Account deletion completed successfully');
+    return true;
+  } catch (error) {
+    console.error('Error deleting user account:', error);
+    return false;
+  }
+};
+
 

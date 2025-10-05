@@ -48,6 +48,7 @@ import {
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
+import { DeleteAccountButton } from './DeleteAccountButton';
 import { EditProfile } from "./EditProfile";
 import { CertificateApplication } from "./CertificateApplication";
 import MyApplications from "./MyApplications";
@@ -1356,9 +1357,10 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             >
               <MessageCircle className="h-5 w-5" />
             </Button>
-          <Button variant="ghost" size="icon" onClick={onLogout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
+            <DeleteAccountButton className="mr-2" />
+            <Button variant="ghost" size="icon" onClick={onLogout}>
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </div>
