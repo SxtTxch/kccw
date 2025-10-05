@@ -1008,10 +1008,10 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="flex-1 min-w-0"
+                        className="text-xs px-2"
                         onClick={() => setSelectedStudent(student)}
                       >
-                        <Eye className="h-4 w-4 mr-2" />
+                        <Eye className="h-3 w-3 mr-1" />
                         Szczegóły
                       </Button>
                       
