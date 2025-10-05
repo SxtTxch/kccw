@@ -214,6 +214,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     }
 
     console.log('loadMessages called with:', { contactId, currentUserId });
+    console.log('Contact ID type:', typeof contactId, 'Current User ID type:', typeof currentUserId);
 
     try {
       const messagesRef = collection(db, 'messages');
@@ -239,9 +240,22 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         
         console.log(`Checking message ${doc.id}: sender=${senderIdStr}, receiver=${receiverIdStr}, currentUser=${currentUserIdStr}, contact=${contactIdStr}`);
         
-        if ((senderIdStr === currentUserIdStr && receiverIdStr === contactIdStr) ||
-            (senderIdStr === contactIdStr && receiverIdStr === currentUserIdStr)) {
-          console.log(`Message ${doc.id} matches conversation between ${currentUserIdStr} and ${contactIdStr}`);
+        // Check if this message is part of the conversation
+        const isSenderCurrentUser = senderIdStr === currentUserIdStr;
+        const isReceiverCurrentUser = receiverIdStr === currentUserIdStr;
+        const isSenderContact = senderIdStr === contactIdStr;
+        const isReceiverContact = receiverIdStr === contactIdStr;
+        
+        console.log(`Message ${doc.id} analysis:`, {
+          isSenderCurrentUser,
+          isReceiverCurrentUser,
+          isSenderContact,
+          isReceiverContact,
+          shouldInclude: (isSenderCurrentUser && isReceiverContact) || (isSenderContact && isReceiverCurrentUser)
+        });
+        
+        if ((isSenderCurrentUser && isReceiverContact) || (isSenderContact && isReceiverCurrentUser)) {
+          console.log(`✅ Message ${doc.id} matches conversation between ${currentUserIdStr} and ${contactIdStr}`);
           messagesData.push({
             id: doc.id,
             text: data.text,
@@ -252,6 +266,8 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
             status: data.status || 'sent',
             type: data.type || 'text'
           });
+        } else {
+          console.log(`❌ Message ${doc.id} does NOT match conversation between ${currentUserIdStr} and ${contactIdStr}`);
         }
       });
       
