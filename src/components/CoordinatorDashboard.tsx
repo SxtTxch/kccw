@@ -933,7 +933,8 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                       <ChatButton 
                         contact={{
                           id: org.id + 2000,
-                          name: org.contactPerson,
+                          name: org.email,
+                          email: org.email,
                           role: "Przedstawiciel organizacji",
                           organization: org.name,
                           isOnline: org.status === 'active',

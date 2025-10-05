@@ -203,11 +203,26 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         const userData = doc.data();
         // Don't include current user in search results
         if (doc.id !== currentUserId) {
+          // Map user types to proper role names
+          let roleName = userData.userType || 'wolontariusz';
+          if (roleName === 'koordynator') {
+            roleName = 'Koordynator';
+          } else if (roleName === 'organizacja') {
+            roleName = 'Organizacja';
+          } else if (roleName === 'wolontariusz') {
+            roleName = 'Wolontariusz';
+          }
+
+          // For institution users, show organization name instead of personal name
+          const displayName = userData.userType === 'organizacja' && userData.organizationName 
+            ? userData.organizationName 
+            : userData.firstName + ' ' + userData.lastName;
+
           results.push({
             id: doc.id,
-            name: userData.firstName + ' ' + userData.lastName,
+            name: displayName,
             email: userData.email,
-            role: userData.userType || 'wolontariusz',
+            role: roleName,
             organization: userData.organizationName,
             avatar: userData.avatar,
             isOnline: true, // For now, assume all users are online
@@ -339,11 +354,26 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       querySnapshot.forEach((doc) => {
         const userData = doc.data();
         if (doc.id !== currentUserId) { // Don't include current user
+          // Map user types to proper role names
+          let roleName = userData.userType || 'wolontariusz';
+          if (roleName === 'koordynator') {
+            roleName = 'Koordynator';
+          } else if (roleName === 'organizacja') {
+            roleName = 'Organizacja';
+          } else if (roleName === 'wolontariusz') {
+            roleName = 'Wolontariusz';
+          }
+
+          // For institution users, show organization name instead of personal name
+          const displayName = userData.userType === 'organizacja' && userData.organizationName 
+            ? userData.organizationName 
+            : userData.firstName + ' ' + userData.lastName;
+
           contactsData.push({
             id: doc.id,
-            name: userData.firstName + ' ' + userData.lastName,
+            name: displayName,
             email: userData.email,
-            role: userData.userType || 'wolontariusz',
+            role: roleName,
             organization: userData.organizationName,
             avatar: userData.avatar,
             isOnline: true,
@@ -415,11 +445,26 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          // Map user types to proper role names
+          let roleName = userData.userType || 'wolontariusz';
+          if (roleName === 'koordynator') {
+            roleName = 'Koordynator';
+          } else if (roleName === 'organizacja') {
+            roleName = 'Organizacja';
+          } else if (roleName === 'wolontariusz') {
+            roleName = 'Wolontariusz';
+          }
+
+          // For institution users, show organization name instead of personal name
+          const displayName = userData.userType === 'organizacja' && userData.organizationName 
+            ? userData.organizationName 
+            : userData.firstName + ' ' + userData.lastName;
+
           return {
             id: userId,
-            name: userData.firstName + ' ' + userData.lastName,
+            name: displayName,
             email: userData.email,
-            role: userData.userType === 'koordynator' ? 'Koordynator' : (userData.userType || 'wolontariusz'),
+            role: roleName,
             organization: userData.organizationName,
             avatar: userData.avatar,
             isOnline: true,
