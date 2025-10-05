@@ -1134,6 +1134,32 @@ export const updateApplicationStatus = async (applicationId: string, status: 'ac
       reviewMessage: message || ''
     });
     
+    // Update user's application status
+    const userRef = doc(db, 'users', applicationData.volunteerId);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      if (userData.offers) {
+        // Find and update the specific application in user's offers
+        const updatedOffers = userData.offers.map((offer: any) => {
+          if (offer.id === applicationId) {
+            return {
+              ...offer,
+              status: status,
+              rejectionMessage: status === 'rejected' ? message : null
+            };
+          }
+          return offer;
+        });
+        
+        await updateDoc(userRef, {
+          offers: updatedOffers,
+          updatedAt: serverTimestamp()
+        });
+      }
+    }
+    
     // If accepted, add volunteer to offer participants
     if (status === 'accepted') {
       const offerRef = doc(db, 'offers', applicationData.offerId);
@@ -1243,10 +1269,9 @@ export const signUpForOffer = async (offerId: string, firestoreUserId: string): 
       updatedAt: serverTimestamp()
     });
 
-    // Only after successfully adding to user, add to offer participants
+    // Don't add to participants yet - wait for organization approval
+    // Only update the offer's updatedAt timestamp
     await updateDoc(offerRef, {
-      participants: arrayUnion(firestoreUserId),
-      currentParticipants: offerData.currentParticipants + 1,
       updatedAt: serverTimestamp()
     });
     
