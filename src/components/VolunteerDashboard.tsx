@@ -1235,27 +1235,33 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
         </div>
         
         <div className="flex gap-2">
-          {offer.participants.includes(userProfile?.id || '') ? (
-            <Button 
-              variant="outline" 
-              onClick={() => handleCancelOffer(offer.id)}
-              className="flex-1"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Anuluj zgłoszenie
-            </Button>
-          ) : (
-            <Button 
-              onClick={() => {
-                console.log('Button clicked - userProfile:', userProfile?.id, 'offer participants:', offer.participants, 'is full:', offer.currentParticipants >= offer.maxParticipants);
-                handleApplyToOffer(offer.id);
-              }}
-              className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90"
-              disabled={offer.currentParticipants >= offer.maxParticipants}
-            >
-              Zgłoś się
-            </Button>
-          )}
+          {(() => {
+            const isParticipant = offer.participants.includes(userProfile?.id || '');
+            const isFull = offer.currentParticipants >= offer.maxParticipants;
+            console.log('Button render check - userProfile:', userProfile?.id, 'offer participants:', offer.participants, 'isParticipant:', isParticipant, 'isFull:', isFull, 'currentParticipants:', offer.currentParticipants, 'maxParticipants:', offer.maxParticipants);
+            
+            return isParticipant ? (
+              <Button 
+                variant="outline" 
+                onClick={() => handleCancelOffer(offer.id)}
+                className="flex-1"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Anuluj zgłoszenie
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => {
+                  console.log('Button clicked - userProfile:', userProfile?.id, 'offer participants:', offer.participants, 'is full:', offer.currentParticipants >= offer.maxParticipants);
+                  handleApplyToOffer(offer.id);
+                }}
+                className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90"
+                disabled={offer.currentParticipants >= offer.maxParticipants}
+              >
+                Zgłoś się
+              </Button>
+            );
+          })()}
           <ChatButton 
             contact={{
               id: parseInt(offer.id) || 0,
