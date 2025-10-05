@@ -41,7 +41,8 @@ import {
   Map,
   Shield,
   Target,
-  X
+  X,
+  XCircle
 } from "lucide-react";
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
