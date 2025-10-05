@@ -95,6 +95,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
 
   const openChat = (contact?: ChatContact) => {
     console.log('Opening chat with:', contact);
+    console.log('Current user ID:', currentUserId);
     
     // Prevent multiple rapid calls
     if (isChatOpen && !contact && !currentContact) {
@@ -109,16 +110,20 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     
     // If no contact provided, open chat without target
     if (!contact) {
+      console.log('Opening chat without contact - showing search interface');
       setCurrentContact(null);
       setIsChatOpen(true);
       setMessages([]);
       return;
     }
     
+    console.log('Opening chat with contact:', contact.id, contact.name);
     setCurrentContact(contact);
     setIsChatOpen(true);
-    const unsubscribe = loadMessages(contact.id);
-    setUnsubscribeMessages(() => unsubscribe);
+    
+    // Load messages for this contact
+    console.log('Loading messages for contact:', contact.id);
+    loadMessages(contact.id);
   };
 
   const closeChat = () => {
@@ -208,6 +213,8 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       return;
     }
 
+    console.log('loadMessages called with:', { contactId, currentUserId });
+
     try {
       const messagesRef = collection(db, 'messages');
       const q = query(
@@ -217,6 +224,8 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
 
       const querySnapshot = await getDocs(q);
       const messagesData: Message[] = [];
+      
+      console.log('Found', querySnapshot.size, 'total messages in database');
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -228,8 +237,11 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         const currentUserIdStr = String(currentUserId);
         const contactIdStr = String(contactId);
         
+        console.log(`Checking message ${doc.id}: sender=${senderIdStr}, receiver=${receiverIdStr}, currentUser=${currentUserIdStr}, contact=${contactIdStr}`);
+        
         if ((senderIdStr === currentUserIdStr && receiverIdStr === contactIdStr) ||
             (senderIdStr === contactIdStr && receiverIdStr === currentUserIdStr)) {
+          console.log(`Message ${doc.id} matches conversation between ${currentUserIdStr} and ${contactIdStr}`);
           messagesData.push({
             id: doc.id,
             text: data.text,
@@ -242,6 +254,9 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
           });
         }
       });
+      
+      console.log('Filtered messages for conversation:', messagesData.length, 'messages');
+      console.log('Messages data:', messagesData);
       
       setMessages(messagesData);
     } catch (error) {
