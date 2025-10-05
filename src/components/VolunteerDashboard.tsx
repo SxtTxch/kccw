@@ -875,7 +875,30 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
-  const appliedOffers = offers.filter(offer => offer.participants.includes(userProfile?.id || ''));
+  // Get user's applications to check which offers they've applied to
+  const [userApplications, setUserApplications] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const fetchUserApplications = async () => {
+      if (userProfile?.id) {
+        try {
+          const applications = await getUserOffers(userProfile.id);
+          setUserApplications(applications);
+        } catch (error) {
+          console.error('Error fetching user applications:', error);
+        }
+      }
+    };
+    
+    fetchUserApplications();
+  }, [userProfile?.id, offers]);
+  
+  const appliedOffers = offers.filter(offer => {
+    // Check if user is already a participant OR has a pending/accepted application
+    const isParticipant = offer.participants.includes(userProfile?.id || '');
+    const hasApplication = userApplications.some(app => app.offerId === offer.id);
+    return isParticipant || hasApplication;
+  });
   const userAge = calculateAge(user.birthDate);
 
   const getUrgencyColor = (urgency: string) => {
@@ -1237,10 +1260,11 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
         <div className="flex gap-2">
           {(() => {
             const isParticipant = offer.participants.includes(userProfile?.id || '');
+            const hasApplication = userApplications.some(app => app.offerId === offer.id);
             const isFull = offer.currentParticipants >= offer.maxParticipants;
-            console.log('Button render check - userProfile:', userProfile?.id, 'offer participants:', offer.participants, 'isParticipant:', isParticipant, 'isFull:', isFull, 'currentParticipants:', offer.currentParticipants, 'maxParticipants:', offer.maxParticipants);
+            console.log('Button render check - userProfile:', userProfile?.id, 'offer participants:', offer.participants, 'isParticipant:', isParticipant, 'hasApplication:', hasApplication, 'isFull:', isFull, 'currentParticipants:', offer.currentParticipants, 'maxParticipants:', offer.maxParticipants);
             
-            return isParticipant ? (
+            return (isParticipant || hasApplication) ? (
               <Button 
                 variant="outline" 
                 onClick={() => handleCancelOffer(offer.id)}
