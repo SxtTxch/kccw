@@ -68,6 +68,7 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { useChat } from "../contexts/ChatContext";
+import { getOffersByOrganization } from "../firebase/firestore";
 import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 
 interface User {
@@ -481,7 +482,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [activeTab, setActiveTab] = useState("offers");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [offers] = useState<Offer[]>(mockOffers);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(true);
   const [volunteers] = useState<Volunteer[]>(mockVolunteers);
   const [applications] = useState<Application[]>(mockApplications);
   const [calendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
@@ -508,6 +510,27 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       setCurrentUser(mappedUser);
     }
   }, [user]);
+
+  // Fetch offers created by this organization
+  useEffect(() => {
+    const fetchOffers = async () => {
+      if (user?.id) {
+        try {
+          setLoadingOffers(true);
+          const organizationOffers = await getOffersByOrganization(user.id.toString());
+          setOffers(organizationOffers);
+          console.log('Fetched organization offers:', organizationOffers);
+        } catch (error) {
+          console.error('Error fetching organization offers:', error);
+        } finally {
+          setLoadingOffers(false);
+        }
+      }
+    };
+
+    fetchOffers();
+  }, [user?.id]);
+
   const [organizationMembers, setOrganizationMembers] = useState<OrganizationMember[]>(mockOrganizationMembers);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMember, setNewMember] = useState({
@@ -1750,7 +1773,14 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             </Card>
 
             {/* Offers List */}
-            {filteredOffers.length > 0 ? (
+            {loadingOffers ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Ładowanie ofert...</p>
+                </CardContent>
+              </Card>
+            ) : filteredOffers.length > 0 ? (
               filteredOffers.map(offer => (
                 <Card key={offer.id} className="border-l-4 border-l-green-500">
                   <CardHeader className="pb-3">

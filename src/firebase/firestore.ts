@@ -991,6 +991,28 @@ export const getAllOffers = async (): Promise<Offer[]> => {
   }
 };
 
+// Get offers by organization ID
+export const getOffersByOrganization = async (organizationId: string): Promise<Offer[]> => {
+  try {
+    console.log('Fetching offers for organization:', organizationId);
+    const { collection, query, where, getDocs } = await import('firebase/firestore');
+    const { db } = await import('./config');
+    
+    const offersRef = collection(db, 'offers');
+    const q = query(offersRef, where('organizationId', '==', organizationId));
+    const querySnapshot = await getDocs(q);
+    const offers = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    console.log(`Found ${offers.length} offers for organization ${organizationId}`);
+    return offers;
+  } catch (error) {
+    console.error('Error fetching offers by organization:', error);
+    return [];
+  }
+};
+
 // Get offer by ID
 export const getOfferById = async (offerId: string): Promise<Offer | null> => {
   try {
