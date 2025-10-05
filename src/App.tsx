@@ -11,14 +11,13 @@ import { CoordinatorDashboard } from "./components/CoordinatorDashboard";
 import { OrganizationDashboard } from "./components/OrganizationDashboard";
 import { MobileMetaTags } from "./components/MobileMetaTags";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { ChatProvider, useChat } from "./contexts/ChatContext";
+import { ChatProvider } from "./contexts/ChatContext";
 import { createUserProfile, UserProfile } from "./firebase/firestore";
 import { usePageTracking } from "./hooks/useAnalytics";
 import { Chat } from "./components/Chat";
 
 function AppContent() {
   const { user, userProfile, loading, signIn, signUp, logout, validateUserType } = useAuth();
-  const { isChatOpen } = useChat() as any;
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [isRegistration, setIsRegistration] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
@@ -357,26 +356,17 @@ function AppContent() {
 
     if (userProfile.userType === "wolontariusz") {
       return (
-        <>
-          <VolunteerDashboard user={userProfile} onLogout={handleBackToSelection} />
-          {isChatOpen && <Chat userType={userProfile.userType} />}
-        </>
+        <VolunteerDashboard user={userProfile} onLogout={handleBackToSelection} />
       );
     }
     if (userProfile.userType === "koordynator") {
       return (
-        <>
-          <CoordinatorDashboard user={userProfile} onLogout={handleBackToSelection} />
-          {isChatOpen && <Chat userType={userProfile.userType} />}
-        </>
+        <CoordinatorDashboard user={userProfile} onLogout={handleBackToSelection} />
       );
     }
     if (userProfile.userType === "organizacja") {
       return (
-        <>
-          <OrganizationDashboard user={userProfile} onLogout={handleBackToSelection} />
-          {isChatOpen && <Chat userType={userProfile.userType} />}
-        </>
+        <OrganizationDashboard user={userProfile} onLogout={handleBackToSelection} />
       );
     }
     return (
@@ -933,8 +923,7 @@ export default function App() {
     <>
       
       <AuthProvider>
-        <ChatProvider children={<AppContent />}>
-        </ChatProvider>
+        <ChatProvider children={<AppContent />} />
       </AuthProvider>
     </>
   );

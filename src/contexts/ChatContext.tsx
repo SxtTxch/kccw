@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   collection, 
   doc, 
@@ -8,6 +8,7 @@ import {
   where, 
   orderBy, 
   getDocs,
+  getDoc,
   serverTimestamp,
   updateDoc
 } from 'firebase/firestore';
@@ -42,11 +43,15 @@ interface ChatContextType {
   currentContact: ChatContact | null;
   messages: Message[];
   contacts: ChatContact[];
+  conversations: ChatContact[];
   openChat: (contact?: ChatContact) => void;
   closeChat: () => void;
   sendMessage: (text: string, receiverId: string) => Promise<void>;
   searchUserByEmail: (email: string) => Promise<ChatContact[]>;
   loadContacts: () => Promise<void>;
+  loadConversations: () => Promise<void>;
+  loadMessages: (contactId: string) => Promise<void>;
+  markMessagesAsRead: (contactId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -68,18 +73,21 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const [currentContact, setCurrentContact] = useState<ChatContact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [contacts, setContacts] = useState<ChatContact[]>([]);
+  const [conversations, setConversations] = useState<ChatContact[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [unsubscribeMessages, setUnsubscribeMessages] = useState<(() => void) | null>(null);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
 
   useEffect(() => {
     const userId = localStorage.getItem('currentUserId');
+    console.log('ChatContext: currentUserId from localStorage:', userId);
     if (userId) {
       setCurrentUserId(userId);
     }
     
     // Cleanup on unmount
     return () => {
-      if (unsubscribeMessages) {
+      if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
         unsubscribeMessages();
       }
     };
@@ -88,8 +96,14 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const openChat = (contact?: ChatContact) => {
     console.log('Opening chat with:', contact);
     
+    // Prevent multiple rapid calls
+    if (isChatOpen && !contact && !currentContact) {
+      console.log('Chat already open without contact, ignoring duplicate call');
+      return;
+    }
+    
     // Clean up previous message listener
-    if (unsubscribeMessages) {
+    if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
       unsubscribeMessages();
     }
     
@@ -109,7 +123,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
 
   const closeChat = () => {
     // Clean up message listener
-    if (unsubscribeMessages) {
+    if (unsubscribeMessages && typeof unsubscribeMessages === 'function') {
       unsubscribeMessages();
       setUnsubscribeMessages(null);
     }
@@ -179,27 +193,23 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     }
   };
 
-  const loadMessages = (contactId: string) => {
+  const loadMessages = useCallback(async (contactId: string) => {
     if (!currentUserId) {
       console.log('No currentUserId, cannot load messages');
       return;
     }
 
-    console.log('Loading messages between:', currentUserId, 'and', contactId);
+    try {
+      const messagesRef = collection(db, 'messages');
+      const q = query(
+        messagesRef,
+        orderBy('timestamp', 'asc')
+      );
 
-    const messagesRef = collection(db, 'messages');
-    
-    // Use a simpler approach - get all messages and filter client-side
-    const q = query(
-      messagesRef,
-      orderBy('timestamp', 'asc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      console.log('All messages snapshot received:', snapshot.size, 'total messages');
+      const querySnapshot = await getDocs(q);
       const messagesData: Message[] = [];
       
-      snapshot.forEach((doc) => {
+      querySnapshot.forEach((doc) => {
         const data = doc.data();
         
         // Filter messages between current user and contact
@@ -218,17 +228,14 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         }
       });
       
-      console.log('Filtered messages for this conversation:', messagesData.length);
-      console.log('Setting messages:', messagesData);
       setMessages(messagesData);
-    }, (error) => {
+    } catch (error) {
       console.error('Error loading messages:', error);
-    });
+    }
+  }, [currentUserId]);
 
-    return unsubscribe;
-  };
 
-  const loadContacts = async () => {
+  const loadContacts = useCallback(async () => {
     try {
       const usersRef = collection(db, 'users');
       const querySnapshot = await getDocs(usersRef);
@@ -255,7 +262,182 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     } catch (error) {
       console.error('Error loading contacts:', error);
     }
-  };
+  }, [currentUserId]);
+
+  const loadConversations = useCallback(async () => {
+    if (!currentUserId) {
+      console.log('No currentUserId, cannot load conversations');
+      return;
+    }
+    
+    if (isLoadingConversations) {
+      console.log('Already loading conversations, skipping...');
+      return;
+    }
+    
+    console.log('Loading conversations for user:', currentUserId);
+    setIsLoadingConversations(true);
+    
+    try {
+      const messagesRef = collection(db, 'messages');
+      const q = query(messagesRef, orderBy('timestamp', 'desc'));
+      
+      const querySnapshot = await getDocs(q);
+      
+      console.log('Found', querySnapshot.size, 'total messages');
+      
+      // Get all unique conversation partners
+      const conversationMap = new Map<string, { contact: ChatContact, lastMessage: Message, unreadCount: number }>();
+      
+      // First, collect all unique user IDs from messages
+      const userIds = new Set<string>();
+      querySnapshot.forEach((doc) => {
+        const messageData = doc.data();
+        const senderId = messageData.senderId;
+        const receiverId = messageData.receiverId;
+        
+        // console.log('Message:', doc.id, 'sender:', senderId, 'receiver:', receiverId, 'currentUser:', currentUserId);
+        
+        if (senderId !== currentUserId) userIds.add(senderId);
+        if (receiverId !== currentUserId) userIds.add(receiverId);
+      });
+      
+      console.log('Unique user IDs found:', Array.from(userIds));
+      
+      // Filter out invalid user IDs (numbers, 'chat', empty strings, etc.)
+      const validUserIds = Array.from(userIds).filter(userId => 
+        typeof userId === 'string' && 
+        userId.length > 0 && 
+        userId !== 'chat' && 
+        userId !== '0' &&
+        !isNaN(Number(userId)) === false // Keep string IDs, filter out pure numbers
+      );
+      
+      console.log('Valid user IDs after filtering:', validUserIds);
+      
+      // Get all user data at once
+      const userPromises = validUserIds.map(async (userId) => {
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          return {
+            id: userId,
+            name: userData.firstName + ' ' + userData.lastName,
+            email: userData.email,
+            role: userData.userType === 'koordynator' ? 'Koordynator' : (userData.userType || 'wolontariusz'),
+            organization: userData.organizationName,
+            avatar: userData.avatar,
+            isOnline: true,
+            lastSeen: 'Online'
+          };
+        }
+        return null;
+      });
+      
+      const users = (await Promise.all(userPromises)).filter(Boolean) as ChatContact[];
+      const userMap = new Map(users.map(user => [user.id, user]));
+      
+      // Now process messages
+      querySnapshot.forEach((doc) => {
+        const messageData = doc.data();
+        const message: Message = {
+          id: doc.id,
+          text: messageData.text,
+          senderId: messageData.senderId,
+          senderName: messageData.senderName || 'Unknown',
+          receiverId: messageData.receiverId,
+          timestamp: messageData.timestamp,
+          status: messageData.status || 'sent',
+          type: messageData.type || 'text'
+        };
+        
+        console.log(`Processing message: ${message.id} from ${message.senderId} to ${message.receiverId}, status: ${message.status}, currentUserId: ${currentUserId}`);
+        
+        // Determine the other participant in the conversation
+        const otherUserId = message.senderId === currentUserId ? message.receiverId : message.senderId;
+        
+        if (otherUserId !== currentUserId && userMap.has(otherUserId)) {
+          const user = userMap.get(otherUserId)!;
+          
+          if (!conversationMap.has(otherUserId)) {
+            conversationMap.set(otherUserId, {
+              contact: user,
+              lastMessage: message,
+              unreadCount: 0
+            });
+          }
+          
+          // Update unread count if message is sent TO current user, not FROM current user, and not read
+          if (message.receiverId === currentUserId && message.senderId !== currentUserId && message.status !== 'read') {
+            const conversation = conversationMap.get(otherUserId);
+            if (conversation) {
+              conversation.unreadCount++;
+              console.log(`Incrementing unread count for ${otherUserId}: ${conversation.unreadCount} (message from ${message.senderId} to ${message.receiverId}, status: ${message.status})`);
+            }
+          }
+        }
+      });
+      
+      // Convert to array and sort by unread count first, then by last message timestamp
+      const conversationsData = Array.from(conversationMap.values())
+        .map(item => ({
+          ...item.contact,
+          lastMessage: item.lastMessage,
+          unreadCount: item.unreadCount
+        }))
+        .sort((a, b) => {
+          // First sort by unread count (descending)
+          if (a.unreadCount !== b.unreadCount) {
+            return b.unreadCount - a.unreadCount;
+          }
+          // Then sort by last message timestamp (descending)
+          return b.lastMessage.timestamp.toDate().getTime() - a.lastMessage.timestamp.toDate().getTime();
+        });
+      
+      setConversations(conversationsData);
+      
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, [currentUserId]);
+
+  const markMessagesAsRead = useCallback(async (contactId: string) => {
+    if (!currentUserId) return;
+
+    try {
+      // Get all messages between current user and contact
+      const messagesRef = collection(db, 'messages');
+      const q = query(
+        messagesRef,
+        orderBy('timestamp', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const updatePromises: Promise<void>[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        
+        // Filter messages between current user and contact that are unread
+        if (data.receiverId === currentUserId && 
+            data.senderId === contactId && 
+            data.status !== 'read') {
+          updatePromises.push(updateDoc(doc.ref, { status: 'read' }));
+        }
+      });
+
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+        
+        // Reload conversations to update unread counts
+        loadConversations();
+      }
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  }, [currentUserId, loadConversations]);
 
   // Debug function to add test message
   const addTestMessage = async (contactId: string) => {
@@ -285,11 +467,15 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     currentContact,
     messages,
     contacts,
+    conversations,
     openChat,
     closeChat,
     sendMessage,
     searchUserByEmail,
     loadContacts,
+    loadConversations,
+    loadMessages,
+    markMessagesAsRead,
   };
 
   return (

@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
-import { ChatButton } from "./Chat";
+import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { StudentProfile } from "./StudentProfile";
 import { getStudentsBySchool } from "../firebase/firestore";
@@ -598,7 +598,11 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => openChat()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openChat();
+              }}
               title="Otwórz chat"
             >
               <MessageCircle className="h-5 w-5" />
@@ -1424,6 +1428,8 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
           </div>
         </div>
       </div>
+      
+      <Chat userType={user.userType as "wolontariusz" | "koordynator" | "organizacja"} />
     </div>
   );
 }

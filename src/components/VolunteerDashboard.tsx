@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
-import { ChatButton } from "./Chat";
+import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import MyApplications from "./MyApplications";
 import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge } from "../firebase/firestore";
@@ -1115,7 +1115,11 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => openChat()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openChat();
+              }}
               title="Otwórz chat"
             >
               <MessageCircle className="h-5 w-5" />
@@ -2000,6 +2004,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
         </div>
       </div>
       
+      <Chat userType={user.userType as "wolontariusz" | "koordynator" | "organizacja"} />
     </div>
   );
 }

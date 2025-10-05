@@ -65,7 +65,7 @@ import {
 } from "lucide-react";
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
-import { ChatButton } from "./Chat";
+import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { useChat } from "../contexts/ChatContext";
 
@@ -1605,7 +1605,11 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => openChat()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openChat();
+              }}
               title="Otwórz chat"
             >
               <MessageCircle className="h-5 w-5" />
@@ -2753,6 +2757,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
           </div>
         </div>
       </div>
+      
+      <Chat userType={user.userType as "wolontariusz" | "koordynator" | "organizacja"} />
     </div>
   );
 }
