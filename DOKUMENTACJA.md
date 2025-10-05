@@ -201,7 +201,7 @@ W wersji pokazowej trzeba manualnie odświeżać czat, ze względu na limit żą
 - Zarządzanie cookies
 - Eksport danych użytkownika
 
-## Uprawnienia według ról
+## Bezpieczeństwo
 
 ### Hierarchia uprawnień
 
@@ -520,4 +520,5 @@ interface VolunteerDashboardProps {
 - Backup danych
 
 ---
+
 
