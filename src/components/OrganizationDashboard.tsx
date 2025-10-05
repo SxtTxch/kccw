@@ -2990,8 +2990,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
       {/* Volunteer Profile Modal */}
       {showVolunteerProfile && selectedVolunteer && (
-        <div className="fixed inset-0 z-[100]" onClick={() => setShowVolunteerProfile(false)}>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl border-2 border-gray-200 w-80 max-h-96 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={() => setShowVolunteerProfile(false)}>
+          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-200 w-80 max-h-96 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-3">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-sm font-semibold">Profil wolontariusza</h3>
