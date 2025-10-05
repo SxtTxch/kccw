@@ -1135,7 +1135,12 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       }
 
       // Check if user is a minor and doesn't have approved certificate
-      if (user.isMinor && certificateStatus !== 'approved') {
+      console.log('User isMinor:', user.isMinor);
+      console.log('UserProfile isMinor:', userProfile?.isMinor);
+      console.log('Certificate status:', certificateStatus);
+      console.log('User age check:', user.birthDate);
+      
+      if ((user.isMinor || userProfile?.isMinor) && certificateStatus !== 'approved') {
         alert('Jako osoba poniżej 18 roku życia, musisz mieć zaakceptowane zaświadczenie od koordynatora szkolnego, aby móc uczestniczyć w wolontariacie.');
         return;
       }
@@ -1904,7 +1909,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                     )}
 
                     {/* Certificate Submission for Minors */}
-                    {user.isMinor && (
+                    {(user.isMinor || userProfile?.isMinor) && (
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
@@ -2000,7 +2005,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                     )}
 
                     {/* Regular Certificate Card for Adults */}
-                    {!user.isMinor && (
+                    {!(user.isMinor || userProfile?.isMinor) && (
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
