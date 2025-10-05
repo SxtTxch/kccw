@@ -47,7 +47,6 @@ import {
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
-import { DeleteAccountButton } from './DeleteAccountButton';
 import { EditProfile } from "./EditProfile";
 import { StudentProfile } from "./StudentProfile";
 import { 
@@ -878,7 +877,6 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
             >
               <MessageCircle className="h-5 w-5" />
             </Button>
-            <DeleteAccountButton className="mr-2" />
             <Button variant="ghost" size="icon" onClick={onLogout}>
               <LogOut className="h-5 w-5" />
             </Button>

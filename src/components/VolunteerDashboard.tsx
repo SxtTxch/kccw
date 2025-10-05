@@ -48,7 +48,6 @@ import {
 import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
-import { DeleteAccountButton } from './DeleteAccountButton';
 import { EditProfile } from "./EditProfile";
 import { CertificateApplication } from "./CertificateApplication";
 import MyApplications from "./MyApplications";
@@ -1357,7 +1356,6 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             >
               <MessageCircle className="h-5 w-5" />
             </Button>
-            <DeleteAccountButton className="mr-2" />
             <Button variant="ghost" size="icon" onClick={onLogout}>
               <LogOut className="h-5 w-5" />
             </Button>
@@ -1958,26 +1956,6 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
 
                     {/* Self-rating is not allowed - users cannot rate themselves */}
 
-
-                    {/* Delete Account Section */}
-                    <Card className="border-red-200 bg-red-50">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-red-700">
-                          <AlertTriangle className="h-5 w-5" />
-                          Strefa niebezpieczna
-                        </CardTitle>
-                        <CardDescription>
-                          Nieodwracalne akcje dotyczące Twojego konta
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <DeleteAccountButton className="w-full" />
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Usunięcie konta spowoduje trwałe usunięcie wszystkich Twoich danych. 
-                          Ta operacja nie może zostać cofnięta.
-                        </p>
-                      </CardContent>
-                    </Card>
 
                   </TabsContent>
                   
