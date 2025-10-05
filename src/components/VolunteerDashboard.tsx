@@ -1140,7 +1140,27 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       console.log('Certificate status:', certificateStatus);
       console.log('User age check:', user.birthDate);
       
-      if ((user.isMinor || userProfile?.isMinor) && certificateStatus !== 'approved') {
+      // Calculate if user is a minor based on birth date
+      const isUserMinor = () => {
+        const birthDate = user.birthDate || userProfile?.birthDate;
+        if (!birthDate) return false;
+        
+        const today = new Date();
+        const birth = new Date(birthDate);
+        const age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        
+        // If birthday hasn't occurred this year, subtract 1
+        const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
+        
+        console.log('Calculated age:', actualAge);
+        return actualAge < 18;
+      };
+      
+      const isMinor = user.isMinor || userProfile?.isMinor || isUserMinor();
+      console.log('Final isMinor check:', isMinor);
+      
+      if (isMinor && certificateStatus !== 'approved') {
         alert('Jako osoba poniżej 18 roku życia, musisz mieć zaakceptowane zaświadczenie od koordynatora szkolnego, aby móc uczestniczyć w wolontariacie.');
         return;
       }
@@ -1909,7 +1929,18 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                     )}
 
                     {/* Certificate Submission for Minors */}
-                    {(user.isMinor || userProfile?.isMinor) && (
+                    {(() => {
+                      const birthDate = user.birthDate || userProfile?.birthDate;
+                      if (!birthDate) return user.isMinor || userProfile?.isMinor;
+                      
+                      const today = new Date();
+                      const birth = new Date(birthDate);
+                      const age = today.getFullYear() - birth.getFullYear();
+                      const monthDiff = today.getMonth() - birth.getMonth();
+                      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
+                      
+                      return user.isMinor || userProfile?.isMinor || actualAge < 18;
+                    })() && (
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
@@ -2005,7 +2036,18 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                     )}
 
                     {/* Regular Certificate Card for Adults */}
-                    {!(user.isMinor || userProfile?.isMinor) && (
+                    {!(() => {
+                      const birthDate = user.birthDate || userProfile?.birthDate;
+                      if (!birthDate) return user.isMinor || userProfile?.isMinor;
+                      
+                      const today = new Date();
+                      const birth = new Date(birthDate);
+                      const age = today.getFullYear() - birth.getFullYear();
+                      const monthDiff = today.getMonth() - birth.getMonth();
+                      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
+                      
+                      return user.isMinor || userProfile?.isMinor || actualAge < 18;
+                    })() && (
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
