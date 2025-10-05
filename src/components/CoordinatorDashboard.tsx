@@ -968,7 +968,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                         </div>
                       )}
                       
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex flex-wrap gap-1 mt-2">
                         {student.isMinor && (
                           <Badge variant="outline" className="text-xs">
                             Małoletni
@@ -995,20 +995,20 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                               'bg-gray-50 text-gray-700'
                             }`}
                           >
-                            {student.certificateStatus === 'approved' ? 'Zaświadczenie zatwierdzone' :
-                             student.certificateStatus === 'rejected' ? 'Zaświadczenie odrzucone' :
-                             student.certificateStatus === 'pending' ? 'Oczekuje na zaświadczenie' :
-                             'Oczekuje na zaświadczenie'}
+                            {student.certificateStatus === 'approved' ? 'Zatwierdzone' :
+                             student.certificateStatus === 'rejected' ? 'Odrzucone' :
+                             student.certificateStatus === 'pending' ? 'Oczekuje' :
+                             'Oczekuje'}
                           </Badge>
                         )}
                       </div>
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="flex-1"
+                        className="flex-1 min-w-0"
                         onClick={() => setSelectedStudent(student)}
                       >
                         <Eye className="h-4 w-4 mr-2" />
@@ -1017,25 +1017,25 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                       
                       {/* Certificate Management for Minors */}
                       {student.isMinor && (
-                        <>
+                        <div className="flex flex-wrap gap-1">
                           {student.certificateStatus === 'pending' && (
                             <>
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="bg-green-50 text-green-700 hover:bg-green-100"
+                                className="bg-green-50 text-green-700 hover:bg-green-100 text-xs px-2"
                                 onClick={() => handleStudentCertificateApproval(student.id, true)}
                               >
-                                <CheckCircle className="h-4 w-4 mr-1" />
+                                <CheckCircle className="h-3 w-3 mr-1" />
                                 Zatwierdź
                               </Button>
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="bg-red-50 text-red-700 hover:bg-red-100"
+                                className="bg-red-50 text-red-700 hover:bg-red-100 text-xs px-2"
                                 onClick={() => handleStudentCertificateApproval(student.id, false)}
                               >
-                                <XCircle className="h-4 w-4 mr-1" />
+                                <XCircle className="h-3 w-3 mr-1" />
                                 Odrzuć
                               </Button>
                             </>
@@ -1044,10 +1044,10 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="bg-red-50 text-red-700 hover:bg-red-100"
+                              className="bg-red-50 text-red-700 hover:bg-red-100 text-xs px-2"
                               onClick={() => handleStudentCertificateApproval(student.id, false)}
                             >
-                              <XCircle className="h-4 w-4 mr-1" />
+                              <XCircle className="h-3 w-3 mr-1" />
                               Cofnij
                             </Button>
                           )}
@@ -1055,10 +1055,10 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="bg-green-50 text-green-700 hover:bg-green-100"
+                              className="bg-green-50 text-green-700 hover:bg-green-100 text-xs px-2"
                               onClick={() => handleStudentCertificateApproval(student.id, true)}
                             >
-                              <CheckCircle className="h-4 w-4 mr-1" />
+                              <CheckCircle className="h-3 w-3 mr-1" />
                               Zatwierdź
                             </Button>
                           )}
@@ -1066,14 +1066,14 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="bg-gray-50 text-gray-700"
+                              className="bg-gray-50 text-gray-700 text-xs px-2"
                               disabled
                             >
-                              <Clock className="h-4 w-4 mr-1" />
-                              Oczekuje na zaświadczenie
+                              <Clock className="h-3 w-3 mr-1" />
+                              Oczekuje
                             </Button>
                           )}
-                        </>
+                        </div>
                       )}
                       
                       <ChatButton 
@@ -1087,7 +1087,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                         }}
                         userType="koordynator"
                         variant="inline"
-                        className="text-sm"
+                        className="text-xs px-2"
                       />
                     </div>
                   </CardContent>
