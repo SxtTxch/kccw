@@ -68,7 +68,7 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { useChat } from "../contexts/ChatContext";
-import { getOffersByOrganization, createOffer } from "../firebase/firestore";
+import { getOffersByOrganization, createOffer, getVolunteersFromOffers } from "../firebase/firestore";
 import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 
 interface User {
@@ -484,7 +484,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(true);
-  const [volunteers] = useState<Volunteer[]>(mockVolunteers);
+  const [volunteers, setVolunteers] = useState<any[]>([]);
+  const [loadingVolunteers, setLoadingVolunteers] = useState(true);
   const [applications] = useState<Application[]>(mockApplications);
   const [calendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
   const [certificates] = useState<Certificate[]>(mockCertificates);
@@ -513,22 +514,32 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
   // Fetch offers created by this organization
   useEffect(() => {
-    const fetchOffers = async () => {
+    const fetchData = async () => {
       if (user?.id) {
         try {
           setLoadingOffers(true);
-          const organizationOffers = await getOffersByOrganization(user.id.toString());
+          setLoadingVolunteers(true);
+          
+          // Fetch offers and volunteers in parallel
+          const [organizationOffers, organizationVolunteers] = await Promise.all([
+            getOffersByOrganization(user.id.toString()),
+            getVolunteersFromOffers(user.id.toString())
+          ]);
+          
           setOffers(organizationOffers);
+          setVolunteers(organizationVolunteers);
           console.log('Fetched organization offers:', organizationOffers);
+          console.log('Fetched organization volunteers:', organizationVolunteers);
         } catch (error) {
-          console.error('Error fetching organization offers:', error);
+          console.error('Error fetching organization data:', error);
         } finally {
           setLoadingOffers(false);
+          setLoadingVolunteers(false);
         }
       }
     };
 
-    fetchOffers();
+    fetchData();
   }, [user?.id]);
 
   const [organizationMembers, setOrganizationMembers] = useState<OrganizationMember[]>(mockOrganizationMembers);
@@ -885,8 +896,10 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
   const filteredVolunteers = volunteers.filter(volunteer => {
     const matchesSearch = `${volunteer.firstName} ${volunteer.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         volunteer.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = selectedFilter === "all" || volunteer.status === selectedFilter;
+                         volunteer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         volunteer.offerTitle.toLowerCase().includes(searchQuery.toLowerCase());
+    // For now, all volunteers are considered "active" since they're participating in offers
+    const matchesFilter = selectedFilter === "all" || selectedFilter === "active";
     return matchesSearch && matchesFilter;
   });
 
@@ -2017,7 +2030,11 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             </Card>
 
             {/* Volunteers List */}
-            {filteredVolunteers.length > 0 ? (
+            {loadingVolunteers ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+              </div>
+            ) : filteredVolunteers.length > 0 ? (
               filteredVolunteers.map(volunteer => (
                 <Card key={volunteer.id} className="border-l-4 border-l-green-500">
                   <CardHeader className="pb-3">
@@ -2029,13 +2046,29 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         <CardDescription className="mb-2">{volunteer.school}</CardDescription>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <Badge className={`${getVolunteerStatusColor(volunteer.status)}`}>
-                          {volunteer.status === 'active' ? 'Aktywny' : 
-                           volunteer.status === 'pending' ? 'Oczekuje' : 'Nieaktywny'}
+                        <Badge className="bg-green-100 text-green-800">
+                          Aktywny
                         </Badge>
                         <div className="flex items-center gap-1">
                           <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                          <span className="text-xs text-muted-foreground">{volunteer.rating}</span>
+                          <span className="text-xs text-muted-foreground">{volunteer.averageRating || 'Brak ocen'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Project/Offer Information */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Award className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">Projekt/Oferta</span>
+                      </div>
+                      <div className="text-sm">
+                        <div className="font-medium text-blue-900 mb-1">{volunteer.offerTitle}</div>
+                        <div className="text-blue-700">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            {volunteer.offerCategory}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -2047,15 +2080,15 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {volunteer.completedHours}h przepracowane
+                        {volunteer.totalHours || 0}h przepracowane
                       </div>
                       <div className="flex items-center gap-1">
                         <Award className="h-4 w-4" />
-                        {volunteer.completedProjects} projektów
+                        {volunteer.totalProjects || 0} projektów
                       </div>
                       <div className="flex items-center gap-1">
                         <Activity className="h-4 w-4" />
-                        {volunteer.currentProjects.length} aktywne
+                        {volunteer.activeProjects || 0} aktywne
                       </div>
                     </div>
                   </CardHeader>
@@ -2067,16 +2100,18 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         <span className="text-xs">{volunteer.email}</span>
                       </div>
                       
-                      <div className="mb-2">
-                        <p className="text-sm text-muted-foreground mb-1">Umiejętności:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {volunteer.skills.map((skill, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {skill}
-                            </Badge>
-                          ))}
+                      {volunteer.skills && volunteer.skills.length > 0 && (
+                        <div className="mb-2">
+                          <p className="text-sm text-muted-foreground mb-1">Umiejętności:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {volunteer.skills.map((skill, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                       
                       <div className="text-sm text-muted-foreground">
                         <span>Doświadczenie: {volunteer.experience}</span>
@@ -2121,7 +2156,13 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               <Card>
                 <CardContent className="p-8 text-center">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Nie znaleziono wolontariuszy</p>
+                  <h3 className="text-lg font-semibold mb-2">Brak wolontariuszy</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Nie ma jeszcze wolontariuszy uczestniczących w Twoich ofertach.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Utwórz oferty, aby przyciągnąć wolontariuszy do współpracy.
+                  </p>
                 </CardContent>
               </Card>
             )}

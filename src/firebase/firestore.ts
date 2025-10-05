@@ -1016,6 +1016,58 @@ export const getOffersByOrganization = async (organizationId: string): Promise<O
   }
 };
 
+// Get volunteers participating in organization's offers
+export const getVolunteersFromOffers = async (organizationId: string): Promise<any[]> => {
+  try {
+    console.log('Fetching volunteers from organization offers:', organizationId);
+    const { collection, query, where, getDocs, doc, getDoc } = await import('firebase/firestore');
+    const { db } = await import('./config');
+    
+    // Get all offers for this organization
+    const offersRef = collection(db, 'offers');
+    const offersQuery = query(offersRef, where('organizationId', '==', organizationId));
+    const offersSnapshot = await getDocs(offersQuery);
+    
+    const volunteersMap = new Map();
+    
+    // For each offer, get participants
+    for (const offerDoc of offersSnapshot.docs) {
+      const offer = { id: offerDoc.id, ...offerDoc.data() };
+      
+      if (offer.participants && offer.participants.length > 0) {
+        // Get user data for each participant
+        for (const participantId of offer.participants) {
+          if (!volunteersMap.has(participantId)) {
+            try {
+              const userRef = doc(db, 'users', participantId);
+              const userSnap = await getDoc(userRef);
+              
+              if (userSnap.exists()) {
+                const userData = { id: userSnap.id, ...userSnap.data() };
+                volunteersMap.set(participantId, {
+                  ...userData,
+                  offerId: offer.id,
+                  offerTitle: offer.title,
+                  offerCategory: offer.category
+                });
+              }
+            } catch (error) {
+              console.error(`Error fetching user ${participantId}:`, error);
+            }
+          }
+        }
+      }
+    }
+    
+    const volunteers = Array.from(volunteersMap.values());
+    console.log(`Found ${volunteers.length} volunteers from organization offers`);
+    return volunteers;
+  } catch (error) {
+    console.error('Error fetching volunteers from offers:', error);
+    return [];
+  }
+};
+
 // Get offer by ID
 export const getOfferById = async (offerId: string): Promise<Offer | null> => {
   try {
