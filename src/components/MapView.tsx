@@ -214,6 +214,11 @@ export function MapView({ userType }: MapViewProps) {
   const [routes, setRoutes] = useState<Route[]>([]);
   const mapRef = useRef<any>(null);
 
+  // Debug state changes
+  useEffect(() => {
+    console.log('State changed:', { isCreatingRoute, routeStartPoint, routeEndPoint });
+  }, [isCreatingRoute, routeStartPoint, routeEndPoint]);
+
   // Route creation functions
   const startRouteCreation = () => {
     console.log('Starting route creation...');
@@ -407,19 +412,9 @@ export function MapView({ userType }: MapViewProps) {
         return;
       }
 
-      // Define Krakow bounds
-      const krakowBounds = new (window as any).google.maps.LatLngBounds(
-        new (window as any).google.maps.LatLng(49.9, 19.7), // Southwest corner
-        new (window as any).google.maps.LatLng(50.2, 20.2)  // Northeast corner
-      );
-
       const options = {
         center: { lat: 50.0647, lng: 19.9450 }, // Krakow coordinates
         zoom: 12,
-        restriction: {
-          latLngBounds: krakowBounds,
-          strictBounds: true
-        },
         gestureHandling: 'greedy', 
         scrollwheel: true, 
         disableDoubleClickZoom: false, 
@@ -435,22 +430,32 @@ export function MapView({ userType }: MapViewProps) {
       const map = new (window as any).google.maps.Map(mapElement, options);
       mapRef.current = map;
 
-      // Ensure map stays within Krakow bounds
-      (window as any).google.maps.event.addListener(map, 'bounds_changed', () => {
-        const bounds = map.getBounds();
-        if (bounds && !krakowBounds.contains(bounds.getNorthEast()) || !krakowBounds.contains(bounds.getSouthWest())) {
-          map.fitBounds(krakowBounds);
-        }
-      });
+      // Add bounds restriction after map is initialized
+      try {
+        const krakowBounds = new (window as any).google.maps.LatLngBounds(
+          new (window as any).google.maps.LatLng(49.9, 19.7), // Southwest corner
+          new (window as any).google.maps.LatLng(50.2, 20.2)  // Northeast corner
+        );
 
-      // Restrict zoom level to reasonable range for Krakow
-      (window as any).google.maps.event.addListener(map, 'zoom_changed', () => {
-        if (map.getZoom() > 16) {
-          map.setZoom(16);
-        } else if (map.getZoom() < 10) {
-          map.setZoom(10);
-        }
-      });
+        // Set bounds restriction
+        map.setOptions({
+          restriction: {
+            latLngBounds: krakowBounds,
+            strictBounds: true
+          }
+        });
+
+        // Restrict zoom level to reasonable range for Krakow
+        (window as any).google.maps.event.addListener(map, 'zoom_changed', () => {
+          if (map.getZoom() > 16) {
+            map.setZoom(16);
+          } else if (map.getZoom() < 10) {
+            map.setZoom(10);
+          }
+        });
+      } catch (error) {
+        console.error('Error setting map bounds:', error);
+      }
 
       // Add keyboard navigation support for accessibility
       mapElement.setAttribute('tabindex', '0');
@@ -672,7 +677,10 @@ export function MapView({ userType }: MapViewProps) {
             {/* Route Creation Controls */}
             <div className="space-y-3">
               {!isCreatingRoute ? (
-                <Button onClick={startRouteCreation} className="w-full">
+                <Button onClick={() => {
+                  console.log('Dodaj Trasę button clicked!');
+                  startRouteCreation();
+                }} className="w-full">
                   <Plus className="h-4 w-4 mr-2" />
                   Dodaj Trasę
                 </Button>
