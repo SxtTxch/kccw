@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -212,6 +212,7 @@ export function MapView({ userType }: MapViewProps) {
   const [routeMarkers, setRouteMarkers] = useState<any[]>([]);
   const [routeDirections, setRouteDirections] = useState<any>(null);
   const [routes, setRoutes] = useState<Route[]>([]);
+  const mapRef = useRef<any>(null);
 
   // Route creation functions
   const startRouteCreation = () => {
@@ -219,7 +220,7 @@ export function MapView({ userType }: MapViewProps) {
     setRouteStartPoint(null);
     setRouteEndPoint(null);
     // Clear existing markers
-    routeMarkers.forEach(marker => marker.setMap(null));
+    routeMarkers.forEach(marker => marker.map = null);
     setRouteMarkers([]);
     if (routeDirections) {
       routeDirections.setMap(null);
@@ -232,7 +233,7 @@ export function MapView({ userType }: MapViewProps) {
     setRouteStartPoint(null);
     setRouteEndPoint(null);
     // Clear markers
-    routeMarkers.forEach(marker => marker.setMap(null));
+    routeMarkers.forEach(marker => marker.map = null);
     setRouteMarkers([]);
     if (routeDirections) {
       routeDirections.setMap(null);
@@ -261,23 +262,26 @@ export function MapView({ userType }: MapViewProps) {
   };
 
   const addMarker = (map: any, lat: number, lng: number, label: string, color: string) => {
-    const marker = new (window as any).google.maps.Marker({
+    // Create a custom marker element
+    const markerElement = document.createElement('div');
+    markerElement.style.width = '40px';
+    markerElement.style.height = '40px';
+    markerElement.style.borderRadius = '50%';
+    markerElement.style.backgroundColor = color;
+    markerElement.style.border = '3px solid white';
+    markerElement.style.display = 'flex';
+    markerElement.style.alignItems = 'center';
+    markerElement.style.justifyContent = 'center';
+    markerElement.style.fontWeight = 'bold';
+    markerElement.style.fontSize = '16px';
+    markerElement.style.color = 'white';
+    markerElement.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+    markerElement.textContent = label;
+
+    const marker = new (window as any).google.maps.marker.AdvancedMarkerElement({
       position: { lat, lng },
       map: map,
-      label: {
-        text: label,
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: '14px'
-      },
-      icon: {
-        path: (window as any).google.maps.SymbolPath.CIRCLE,
-        scale: 20,
-        fillColor: color,
-        fillOpacity: 1,
-        strokeColor: 'white',
-        strokeWeight: 3
-      }
+      content: markerElement
     });
     
     setRouteMarkers(prev => [...prev, marker]);
@@ -407,6 +411,7 @@ export function MapView({ userType }: MapViewProps) {
       };
 
       const map = new (window as any).google.maps.Map(mapElement, options);
+      mapRef.current = map;
 
       // Add keyboard navigation support for accessibility
       mapElement.setAttribute('tabindex', '0');
@@ -453,7 +458,7 @@ export function MapView({ userType }: MapViewProps) {
       });
 
       (window as any).google.maps.event.addListener(map, "click", (event: any) => {
-        handleMapClick(event, map);
+        handleMapClick(event);
       });
     };
 
@@ -462,7 +467,7 @@ export function MapView({ userType }: MapViewProps) {
 
     // Load Google Maps script
     const script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCmVW69-bZkZ4atEYHSLZg5TMIjJc1Fsyw&libraries=places&callback=initMap';
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCmVW69-bZkZ4atEYHSLZg5TMIjJc1Fsyw&libraries=places,marker&callback=initMap';
     script.async = true;
     script.defer = true;
     script.crossOrigin = 'anonymous';
