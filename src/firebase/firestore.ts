@@ -957,6 +957,9 @@ export interface Offer {
   createdAt: any;
   updatedAt: any;
   participants: string[]; // Array of user IDs
+  // Bounty system fields
+  hasBounty?: boolean;
+  bountyAmount?: number;
 }
 
 // Get all offers

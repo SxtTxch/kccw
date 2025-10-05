@@ -68,7 +68,7 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { useChat } from "../contexts/ChatContext";
-import { getOffersByOrganization } from "../firebase/firestore";
+import { getOffersByOrganization, createOffer } from "../firebase/firestore";
 import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 
 interface User {
@@ -686,27 +686,65 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     }));
   };
 
-  const submitOffer = () => {
-    // Tu można dodać logikę zapisania oferty
-    console.log("Nowa oferta:", newOfferData);
-    
-    // Reset formularza
-    setNewOfferData({
-      title: "",
-      category: "",
-      description: "",
-      requirements: "",
-      location: "",
-      startDate: "",
-      endDate: "",
-      duration: "",
-      maxVolunteers: "",
-      contactEmail: user.email,
-      contactPhone: "",
-      bountyAmount: "",
-      hasBounty: false
-    });
-    setIsCreatingOffer(false);
+  const submitOffer = async () => {
+    try {
+      console.log("Creating new offer:", newOfferData);
+      
+      // Prepare offer data for Firebase
+      const offerData = {
+        title: newOfferData.title,
+        description: newOfferData.description,
+        organization: user.organizationName,
+        organizationId: user.id.toString(),
+        category: newOfferData.category,
+        location: newOfferData.location,
+        startDate: newOfferData.startDate,
+        endDate: newOfferData.endDate,
+        maxParticipants: parseInt(newOfferData.maxVolunteers) || 0,
+        requirements: newOfferData.requirements ? newOfferData.requirements.split(',').map(r => r.trim()) : [],
+        benefits: [], // Can be added later
+        contactEmail: newOfferData.contactEmail,
+        contactPhone: newOfferData.contactPhone || '',
+        status: 'active' as const,
+        urgency: 'medium' as const,
+        // Bounty system fields
+        hasBounty: newOfferData.hasBounty,
+        bountyAmount: newOfferData.hasBounty && newOfferData.bountyAmount ? parseInt(newOfferData.bountyAmount) : undefined
+      };
+
+      // Create offer in Firebase
+      const offerId = await createOffer(offerData);
+      
+      if (offerId) {
+        console.log("Offer created successfully with ID:", offerId);
+        
+        // Refresh offers list
+        const organizationOffers = await getOffersByOrganization(user.id.toString());
+        setOffers(organizationOffers);
+        
+        // Reset formularza
+        setNewOfferData({
+          title: "",
+          category: "",
+          description: "",
+          requirements: "",
+          location: "",
+          startDate: "",
+          endDate: "",
+          duration: "",
+          maxVolunteers: "",
+          contactEmail: user.email,
+          contactPhone: "",
+          bountyAmount: "",
+          hasBounty: false
+        });
+        setIsCreatingOffer(false);
+      } else {
+        console.error("Failed to create offer");
+      }
+    } catch (error) {
+      console.error("Error creating offer:", error);
+    }
   };
 
   const cancelCreateOffer = () => {
