@@ -2950,7 +2950,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             <div className="flex flex-col gap-3">
               <Button
                 onClick={confirmDeleteOffer}
-                className="w-full bg-red-600 hover:bg-red-700 text-white py-3"
+                className="w-full bg-red-600 hover:bg-red-700 text-white h-12"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Usuń ofertę
@@ -2958,7 +2958,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               <Button
                 variant="outline"
                 onClick={cancelDeleteOffer}
-                className="w-full py-3"
+                className="w-full h-12"
               >
                 Anuluj
               </Button>
