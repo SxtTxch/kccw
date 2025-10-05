@@ -407,9 +407,19 @@ export function MapView({ userType }: MapViewProps) {
         return;
       }
 
+      // Define Krakow bounds
+      const krakowBounds = new (window as any).google.maps.LatLngBounds(
+        new (window as any).google.maps.LatLng(49.9, 19.7), // Southwest corner
+        new (window as any).google.maps.LatLng(50.2, 20.2)  // Northeast corner
+      );
+
       const options = {
         center: { lat: 50.0647, lng: 19.9450 }, // Krakow coordinates
         zoom: 12,
+        restriction: {
+          latLngBounds: krakowBounds,
+          strictBounds: true
+        },
         gestureHandling: 'greedy', 
         scrollwheel: true, 
         disableDoubleClickZoom: false, 
@@ -424,6 +434,23 @@ export function MapView({ userType }: MapViewProps) {
 
       const map = new (window as any).google.maps.Map(mapElement, options);
       mapRef.current = map;
+
+      // Ensure map stays within Krakow bounds
+      (window as any).google.maps.event.addListener(map, 'bounds_changed', () => {
+        const bounds = map.getBounds();
+        if (bounds && !krakowBounds.contains(bounds.getNorthEast()) || !krakowBounds.contains(bounds.getSouthWest())) {
+          map.fitBounds(krakowBounds);
+        }
+      });
+
+      // Restrict zoom level to reasonable range for Krakow
+      (window as any).google.maps.event.addListener(map, 'zoom_changed', () => {
+        if (map.getZoom() > 16) {
+          map.setZoom(16);
+        } else if (map.getZoom() < 10) {
+          map.setZoom(10);
+        }
+      });
 
       // Add keyboard navigation support for accessibility
       mapElement.setAttribute('tabindex', '0');
