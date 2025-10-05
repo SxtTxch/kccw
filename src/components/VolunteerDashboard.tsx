@@ -575,6 +575,8 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
         
         setCertificateStatus('pending');
         console.log('Certificate application submitted to coordinator');
+        console.log('Application data:', certificateApplication);
+        console.log('Student school name:', userProfile?.schoolName);
         
         // Update user's certificate status in Firebase
         const { doc: userDoc, updateDoc } = await import('firebase/firestore');

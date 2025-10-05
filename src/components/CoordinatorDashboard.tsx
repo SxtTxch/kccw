@@ -537,8 +537,9 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
         const { db } = await import('../firebase/config');
         
         const applicationsRef = collection(db, 'certificateApplications');
-        const q = query(applicationsRef, where('schoolName', '==', userProfile?.schoolName));
-        const querySnapshot = await getDocs(q);
+        // Temporarily fetch ALL applications to debug
+        const querySnapshot = await getDocs(applicationsRef);
+        console.log('All applications in database:', querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         
         const applications: any[] = [];
         querySnapshot.forEach((doc) => {
@@ -549,6 +550,8 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
         });
         
         console.log('Fetched certificate applications:', applications);
+        console.log('Coordinator school name:', userProfile?.schoolName);
+        console.log('Applications count:', applications.length);
         setCertificateApplications(applications);
       } catch (error) {
         console.error('Error fetching certificate applications:', error);
