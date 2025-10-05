@@ -366,6 +366,10 @@ export interface UserProfile {
   
   // Volunteer statistics
   volunteerHours?: number;
+  
+  // Certificate status for minors
+  isMinor?: boolean;
+  certificateStatus?: 'none' | 'pending' | 'approved' | 'rejected';
   totalProjects?: number;
   currentStreak?: number;
   longestStreak?: number;
@@ -1489,6 +1493,33 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
     return users;
   } catch (error) {
     console.error('Error fetching all users:', error);
+    return [];
+  }
+};
+
+// Fetch certificate applications for a specific student
+export const getCertificateApplications = async (studentId: string) => {
+  try {
+    const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+    const { db } = await import('./config');
+    
+    const applicationsRef = collection(db, 'certificateApplications');
+    const q = query(
+      applicationsRef,
+      where('studentId', '==', studentId),
+      orderBy('submittedAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const applications = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    console.log(`Found ${applications.length} certificate applications for student: ${studentId}`);
+    return applications;
+  } catch (error) {
+    console.error('Error fetching certificate applications:', error);
     return [];
   }
 };

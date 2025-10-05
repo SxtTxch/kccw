@@ -28,6 +28,7 @@ import {
   Target,
   Award,
   Star,
+  XCircle,
   Trophy,
   Flame,
   Zap,
@@ -50,7 +51,7 @@ import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { CertificateApplication } from "./CertificateApplication";
 import MyApplications from "./MyApplications";
-import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge, getUserOffers, getOfferById, deleteUserApplication } from "../firebase/firestore";
+import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge, getUserOffers, getOfferById, deleteUserApplication, getCertificateApplications } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import { useChat } from "../contexts/ChatContext";
 import { RatingComments } from "./RatingComments";
@@ -768,7 +769,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     }
   }, [activeTab, userProfile?.id]);
 
-  // Fetch ratings for the volunteer
+  // Fetch ratings and certificate applications for the volunteer
   useEffect(() => {
     const fetchRatings = async () => {
       if (userProfile?.id) {
@@ -783,8 +784,24 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       }
     };
 
+    const fetchCertificates = async () => {
+      if (userProfile?.id && userProfile?.isMinor) {
+        try {
+          setLoadingCertificates(true);
+          const applications = await getCertificateApplications(userProfile.id);
+          setCertificateApplications(applications);
+          console.log('Fetched certificate applications:', applications);
+        } catch (error) {
+          console.error('Error fetching certificate applications:', error);
+        } finally {
+          setLoadingCertificates(false);
+        }
+      }
+    };
+
     fetchRatings();
-  }, [userProfile?.id]);
+    fetchCertificates();
+  }, [userProfile?.id, userProfile?.isMinor]);
 
 
   // Function to handle photo upload for completed actions
@@ -935,6 +952,21 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
   };
 
   // Fetch applications and convert to calendar events
+  const fetchCertificateApplications = async () => {
+    if (!userProfile?.id) return;
+    
+    try {
+      setLoadingCertificates(true);
+      const applications = await getCertificateApplications(userProfile.id);
+      setCertificateApplications(applications);
+      console.log('Fetched certificate applications:', applications);
+    } catch (error) {
+      console.error('Error fetching certificate applications:', error);
+    } finally {
+      setLoadingCertificates(false);
+    }
+  };
+
   const fetchApplications = async () => {
     if (!userProfile?.id) return;
     
@@ -1240,6 +1272,8 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState(user);
+  const [certificateApplications, setCertificateApplications] = useState([]);
+  const [loadingCertificates, setLoadingCertificates] = useState(false);
 
   const handleProfileSave = (updatedUser: any) => {
     setCurrentUser(updatedUser);
@@ -1819,16 +1853,94 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                       </Card>
                     )}
 
-                    {/* Certificate Application for Minors */}
-                    {user.isMinor && (
-                      <CertificateApplication 
-                        userProfile={userProfile}
-                        onApplicationSubmitted={() => {
-                          // Refresh data or show success message
-                          console.log('Certificate application submitted');
-                        }}
-                      />
-                    )}
+                    {/* Certificate Status for Minors */}
+                    {user.isMinor && (() => {
+                      const latestApplication = certificateApplications.length > 0 ? certificateApplications[0] : null;
+                      const certificateStatus = latestApplication?.status || userProfile?.certificateStatus || 'none';
+                      
+                      if (certificateStatus === 'approved') {
+                        return (
+                          <Card className="border-green-200 bg-green-50">
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <h4 className="text-green-800 mb-1">Zaświadczenie zatwierdzone</h4>
+                                  <p className="text-sm text-green-700">
+                                    Twoje zaświadczenie zostało zatwierdzone przez koordynatora szkoły. 
+                                    Możesz teraz uczestniczyć w wolontariacie.
+                                  </p>
+                                  {latestApplication?.processedAt && (
+                                    <p className="text-xs text-green-600 mt-2">
+                                      Zatwierdzone: {new Date(latestApplication.processedAt.seconds * 1000).toLocaleDateString('pl-PL')}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      } else if (certificateStatus === 'rejected') {
+                        return (
+                          <Card className="border-red-200 bg-red-50">
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <h4 className="text-red-800 mb-1">Zaświadczenie odrzucone</h4>
+                                  <p className="text-sm text-red-700">
+                                    Twoje zaświadczenie zostało odrzucone przez koordynatora szkoły.
+                                  </p>
+                                  {latestApplication?.rejectionReason && (
+                                    <p className="text-xs text-red-600 mt-2">
+                                      Powód: {latestApplication.rejectionReason}
+                                    </p>
+                                  )}
+                                  {latestApplication?.processedAt && (
+                                    <p className="text-xs text-red-600 mt-1">
+                                      Odrzucone: {new Date(latestApplication.processedAt.seconds * 1000).toLocaleDateString('pl-PL')}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      } else if (certificateStatus === 'pending') {
+                        return (
+                          <Card className="border-blue-200 bg-blue-50">
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <Clock className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <h4 className="text-blue-800 mb-1">Zaświadczenie w trakcie rozpatrywania</h4>
+                                  <p className="text-sm text-blue-700">
+                                    Twoje zaświadczenie oczekuje na zatwierdzenie przez koordynatora szkoły.
+                                  </p>
+                                  {latestApplication?.submittedAt && (
+                                    <p className="text-xs text-blue-600 mt-2">
+                                      Złożone: {new Date(latestApplication.submittedAt.seconds * 1000).toLocaleDateString('pl-PL')}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      } else {
+                        // No certificate submitted yet - show the form
+                        return (
+                          <CertificateApplication 
+                            userProfile={userProfile}
+                            onApplicationSubmitted={() => {
+                              // Refresh certificate applications
+                              fetchCertificateApplications();
+                              console.log('Certificate application submitted');
+                            }}
+                          />
+                        );
+                      }
+                    })()}
 
 
 
