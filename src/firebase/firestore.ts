@@ -1425,8 +1425,46 @@ export const getStudentsBySchool = async (schoolName: string) => {
       ...doc.data()
     }));
 
-    console.log(`Found ${students.length} students from school: ${schoolName}`);
-    return students;
+    // Check for minors and create certificateStatus field if missing
+    const updatePromises = students.map(async (student) => {
+      const isMinor = student.isMinor || (() => {
+        if (!student.birthDate) return false;
+        const today = new Date();
+        const birth = new Date(student.birthDate);
+        const age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
+        return actualAge < 18;
+      })();
+
+      if (isMinor && !student.certificateStatus) {
+        console.log(`Creating certificateStatus field for minor student: ${student.firstName} ${student.lastName}`);
+        try {
+          const { doc, updateDoc } = await import('firebase/firestore');
+          const { db } = await import('./config');
+          const userRef = doc(db, 'users', student.id);
+          await updateDoc(userRef, {
+            certificateStatus: 'none',
+            isMinor: true
+          });
+          console.log(`Updated student ${student.id} with certificateStatus: none`);
+        } catch (error) {
+          console.error(`Error updating student ${student.id}:`, error);
+        }
+      }
+    });
+
+    await Promise.all(updatePromises);
+
+    // Refetch students to get updated data
+    const updatedQuerySnapshot = await getDocs(q);
+    const updatedStudents = updatedQuerySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    console.log(`Found ${updatedStudents.length} students from school: ${schoolName}`);
+    return updatedStudents;
   } catch (error) {
     console.error('Error fetching students by school:', error);
     return [];
