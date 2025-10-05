@@ -827,8 +827,11 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
   const handleViewVolunteerProfile = async (volunteerId: string) => {
     try {
+      // Close the applications view
+      setCurrentView('list');
+      
       // Fetch volunteer data from Firebase
-      const { doc, getDoc } = await import('firebase/firestore');
+      const { doc, getDoc, collection, query, where, getDocs } = await import('firebase/firestore');
       const { db } = await import('../firebase/config');
       
       const userRef = doc(db, 'users', volunteerId);
@@ -836,7 +839,32 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       
       if (userSnap.exists()) {
         const volunteerData = { id: userSnap.id, ...userSnap.data() };
-        setSelectedVolunteer(volunteerData);
+        
+        // Calculate total volunteer hours from all offers
+        let totalHours = 0;
+        if (volunteerData.offers) {
+          volunteerData.offers.forEach((offer: any) => {
+            if (offer.status === 'completed' && offer.hours) {
+              totalHours += offer.hours;
+            }
+          });
+        }
+        
+        // Calculate average rating from user opinions
+        let averageRating = 0;
+        if (volunteerData.opinions && volunteerData.opinions.length > 0) {
+          const totalRating = volunteerData.opinions.reduce((sum: number, opinion: any) => sum + (opinion.rating || 0), 0);
+          averageRating = totalRating / volunteerData.opinions.length;
+        }
+        
+        // Update volunteer data with calculated values
+        const updatedVolunteerData = {
+          ...volunteerData,
+          totalHours: totalHours,
+          averageRating: averageRating > 0 ? averageRating.toFixed(1) : 'N/A'
+        };
+        
+        setSelectedVolunteer(updatedVolunteerData);
         setShowVolunteerProfile(true);
       }
     } catch (error) {
