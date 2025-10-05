@@ -395,6 +395,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [loadingCalendarEvents, setLoadingCalendarEvents] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [offerToDelete, setOfferToDelete] = useState<Offer | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(false);
   const [reviews] = useState<Review[]>(mockReviews);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -793,12 +794,20 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
   const handleDeleteOffer = (offer: Offer) => {
     setOfferToDelete(offer);
+    setDeleteConfirmation(false);
     setShowDeleteModal(true);
   };
 
   const confirmDeleteOffer = async () => {
     if (!offerToDelete) return;
 
+    if (!deleteConfirmation) {
+      // First click - show "Na pewno?" confirmation
+      setDeleteConfirmation(true);
+      return;
+    }
+
+    // Second click - actually delete
     try {
       const success = await deleteOffer(offerToDelete.id.toString());
       if (success) {
@@ -807,6 +816,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         setOffers(organizationOffers);
         setShowDeleteModal(false);
         setOfferToDelete(null);
+        setDeleteConfirmation(false);
       }
     } catch (error) {
       console.error('Error deleting offer:', error);
@@ -816,6 +826,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const cancelDeleteOffer = () => {
     setShowDeleteModal(false);
     setOfferToDelete(null);
+    setDeleteConfirmation(false);
   };
 
   // Get dates that have offers
@@ -2950,15 +2961,15 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             <div className="flex flex-col gap-3">
               <Button
                 onClick={confirmDeleteOffer}
-                className="w-full bg-red-600 hover:bg-red-700 text-white h-12"
+                className="w-full bg-red-600 hover:bg-red-700 text-white !h-12 !py-0"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Usuń ofertę
+                {deleteConfirmation ? "Na pewno?" : "Usuń ofertę"}
               </Button>
               <Button
                 variant="outline"
                 onClick={cancelDeleteOffer}
-                className="w-full h-12"
+                className="w-full !h-12 !py-0"
               >
                 Anuluj
               </Button>
