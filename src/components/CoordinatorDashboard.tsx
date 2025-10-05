@@ -405,6 +405,17 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
         console.log('First student data structure:', studentsData[0]);
         console.log('Student volunteer hours field:', (studentsData[0] as any)?.volunteerHours);
         console.log('Student total projects field:', (studentsData[0] as any)?.totalProjects);
+        
+        // Debug certificate status for minors
+        const minors = studentsData.filter((s: any) => s.isMinor);
+        console.log('Minor students found:', minors.length);
+        minors.forEach((minor: any) => {
+          console.log(`Minor student: ${minor.firstName} ${minor.lastName}`, {
+            isMinor: minor.isMinor,
+            certificateStatus: minor.certificateStatus,
+            birthDate: minor.birthDate
+          });
+        });
         console.log('All student fields:', Object.keys(studentsData[0] || {}));
         console.log('Student data sample:', {
           volunteerHours: (studentsData[0] as any)?.volunteerHours,
@@ -987,7 +998,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             {student.certificateStatus === 'approved' ? 'Zaświadczenie zatwierdzone' :
                              student.certificateStatus === 'rejected' ? 'Zaświadczenie odrzucone' :
                              student.certificateStatus === 'pending' ? 'Oczekuje na zaświadczenie' :
-                             'Brak zaświadczenia'}
+                             'Oczekuje na zaświadczenie'}
                           </Badge>
                         )}
                       </div>
@@ -1051,7 +1062,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                               Zatwierdź
                             </Button>
                           )}
-                          {!student.certificateStatus && (
+                          {(!student.certificateStatus || student.certificateStatus === 'none') && (
                             <Button 
                               variant="outline" 
                               size="sm" 
