@@ -68,7 +68,7 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { useChat } from "../contexts/ChatContext";
-import { getOffersByOrganization, createOffer, getVolunteersFromOffers } from "../firebase/firestore";
+import { getOffersByOrganization, createOffer, getVolunteersFromOffers, getOfferApplications, updateApplicationStatus } from "../firebase/firestore";
 import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 
 interface User {
@@ -97,7 +97,7 @@ interface Offer {
   startDate: string;
   endDate: string;
   duration: string;
-  maxVolunteers: number;
+  maxParticipants: number;
   appliedVolunteers: number;
   acceptedVolunteers: number;
   status: 'draft' | 'published' | 'in-progress' | 'completed' | 'cancelled';
@@ -187,7 +187,7 @@ const mockOffers: Offer[] = [
     startDate: "2024-11-01",
     endDate: "2024-12-15",
     duration: "3-4 godziny",
-    maxVolunteers: 8,
+    maxParticipants: 8,
     appliedVolunteers: 12,
     acceptedVolunteers: 6,
     status: 'published',
@@ -204,7 +204,7 @@ const mockOffers: Offer[] = [
     startDate: "2024-12-15",
     endDate: "2024-12-24",
     duration: "4-6 godzin",
-    maxVolunteers: 15,
+    maxParticipants: 15,
     appliedVolunteers: 20,
     acceptedVolunteers: 12,
     status: 'published',
@@ -221,7 +221,7 @@ const mockOffers: Offer[] = [
     startDate: "2024-11-10",
     endDate: "2024-12-10",
     duration: "2 godziny",
-    maxVolunteers: 4,
+    maxParticipants: 4,
     appliedVolunteers: 6,
     acceptedVolunteers: 3,
     status: 'in-progress',
@@ -442,7 +442,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [loadingOffers, setLoadingOffers] = useState(true);
   const [volunteers, setVolunteers] = useState<any[]>([]);
   const [loadingVolunteers, setLoadingVolunteers] = useState(true);
-  const [applications] = useState<Application[]>(mockApplications);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
   const [calendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
   const [reviews] = useState<Review[]>(mockReviews);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -526,7 +527,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     requirements: "",
     startDate: "",
     duration: "",
-    maxVolunteers: "",
+    maxParticipants: "",
     contactEmail: user.email,
     bountyAmount: "",
     hasBounty: false
@@ -658,7 +659,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         startDate: newOfferData.startDate,
         endDate: newOfferData.startDate,
         duration: newOfferData.duration,
-        maxParticipants: parseInt(newOfferData.maxVolunteers) || 0,
+        maxParticipants: parseInt(newOfferData.maxParticipants) || 0,
         requirements: newOfferData.requirements ? newOfferData.requirements.split(',').map(r => r.trim()) : [],
         benefits: [], // Can be added later
         contactEmail: newOfferData.contactEmail,
@@ -687,7 +688,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
           requirements: "",
           startDate: "",
           duration: "",
-          maxVolunteers: "",
+          maxParticipants: "",
           contactEmail: user.email,
           bountyAmount: "",
           hasBounty: false
@@ -710,7 +711,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       requirements: "",
       startDate: "",
       duration: "",
-      maxVolunteers: "",
+      maxParticipants: "",
       contactEmail: user.email,
       contactPhone: ""
     });
@@ -743,22 +744,62 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       startDate: offer.startDate,
       endDate: offer.endDate,
       duration: offer.duration || '',
-      maxVolunteers: offer.maxParticipants.toString(),
+      maxParticipants: offer.maxParticipants.toString(),
       contactEmail: user.email,
       contactPhone: ""
     });
     setCurrentView('edit');
   };
 
-  const handleViewApplications = (offer: Offer) => {
+  const handleViewApplications = async (offer: Offer) => {
     setSelectedOffer(offer);
     setCurrentView('applications');
+    setLoadingApplications(true);
+    
+    try {
+      const offerApplications = await getOfferApplications(offer.id.toString());
+      setApplications(offerApplications);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    } finally {
+      setLoadingApplications(false);
+    }
   };
 
   const handleBackToOffers = () => {
     setCurrentView('list');
     setSelectedOffer(null);
     setEditOfferData({});
+  };
+
+  const handleAcceptApplication = async (applicationId: string) => {
+    try {
+      const success = await updateApplicationStatus(applicationId, 'accepted');
+      if (success) {
+        // Refresh applications
+        if (selectedOffer) {
+          const updatedApplications = await getOfferApplications(selectedOffer.id);
+          setApplications(updatedApplications);
+        }
+      }
+    } catch (error) {
+      console.error('Error accepting application:', error);
+    }
+  };
+
+  const handleRejectApplication = async (applicationId: string) => {
+    try {
+      const success = await updateApplicationStatus(applicationId, 'rejected');
+      if (success) {
+        // Refresh applications
+        if (selectedOffer) {
+          const updatedApplications = await getOfferApplications(selectedOffer.id);
+          setApplications(updatedApplications);
+        }
+      }
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+    }
   };
 
   const handleEditOfferInputChange = (field: string, value: string) => {
@@ -790,7 +831,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         startDate: editOfferData.startDate,
         endDate: editOfferData.startDate, // Same as startDate since we only have one date
         duration: editOfferData.duration,
-        maxParticipants: parseInt(editOfferData.maxVolunteers) || 0,
+        maxParticipants: parseInt(editOfferData.maxParticipants) || 0,
         contactEmail: editOfferData.contactEmail,
         updatedAt: new Date()
       });
@@ -996,11 +1037,11 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 <div className="space-y-2">
                   <Label htmlFor="maxVolunteers">Liczba wolontariuszy</Label>
                   <Input
-                    id="maxVolunteers"
+                    id="maxParticipants"
                     type="number"
                     placeholder="np. 10"
-                    value={newOfferData.maxVolunteers}
-                    onChange={(e) => handleOfferInputChange("maxVolunteers", e.target.value)}
+                    value={newOfferData.maxParticipants}
+                    onChange={(e) => handleOfferInputChange("maxParticipants", e.target.value)}
                     className="h-12"
                   />
                 </div>
@@ -1296,8 +1337,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     id="editMaxVolunteers"
                     type="number"
                     placeholder="np. 10"
-                    value={editOfferData.maxVolunteers || ''}
-                    onChange={(e) => handleEditOfferInputChange("maxVolunteers", e.target.value)}
+                    value={editOfferData.maxParticipants || ''}
+                    onChange={(e) => handleEditOfferInputChange("maxParticipants", e.target.value)}
                     className="h-12"
                   />
                 </div>
@@ -1327,8 +1368,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
   // Show applications view
   if (currentView === 'applications' && selectedOffer) {
-    const offerApplications = applications.filter(app => app.offerId === selectedOffer.id);
-    
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Header with Back Button */}
@@ -1352,18 +1391,22 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         <div className="max-w-sm mx-auto p-4 pb-24">
           <div className="text-center mb-6">
             <h2 className="mb-2">{selectedOffer.title}</h2>
-            <p className="text-sm text-muted-foreground">{offerApplications.length} zgłoszeń</p>
+            <p className="text-sm text-muted-foreground">{applications.length} zgłoszeń</p>
           </div>
 
-          {offerApplications.length > 0 ? (
+          {loadingApplications ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+            </div>
+          ) : applications.length > 0 ? (
             <div className="space-y-4">
-              {offerApplications.map(application => (
+              {applications.map(application => (
                 <Card key={application.id}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="font-medium">{application.volunteerName}</h3>
-                        <p className="text-sm text-muted-foreground">{application.volunteerEmail}</p>
+                        <h3 className="font-medium">{application.volunteer.firstName} {application.volunteer.lastName}</h3>
+                        <p className="text-sm text-muted-foreground">{application.volunteer.email}</p>
                       </div>
                       <Badge className={`${getApplicationStatusColor(application.status)}`}>
                         {application.status === 'pending' ? 'Oczekuje' : 
@@ -1372,35 +1415,44 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                       </Badge>
                     </div>
                     
-                    <p className="text-sm mb-3">{application.message}</p>
+                    {application.message && (
+                      <p className="text-sm mb-3">{application.message}</p>
+                    )}
                     
                     <div className="flex justify-between items-center text-xs text-muted-foreground mb-3">
-                      <span>Zgłoszono: {new Date(application.appliedDate).toLocaleDateString('pl-PL')}</span>
-                      {application.rating && (
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span>{application.rating}</span>
-                        </div>
-                      )}
+                      <span>Zgłoszono: {new Date(application.appliedAt.seconds * 1000).toLocaleDateString('pl-PL')}</span>
+                      <div className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        <span>{application.volunteer.age} lat</span>
+                      </div>
                     </div>
 
                     {application.status === 'pending' && (
                       <div className="flex gap-2">
-                        <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => handleAcceptApplication(application.id)}
+                        >
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Akceptuj
                         </Button>
-                        <Button size="sm" variant="outline" className="flex-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => handleRejectApplication(application.id)}
+                        >
                           <UserX className="h-3 w-3 mr-1" />
                           Odrzuć
                         </Button>
                       </div>
                     )}
 
-                    {application.feedback && (
+                    {application.reviewMessage && (
                       <div className="mt-3 p-2 bg-gray-50 rounded">
                         <p className="text-xs text-muted-foreground">Uwagi:</p>
-                        <p className="text-sm">{application.feedback}</p>
+                        <p className="text-sm">{application.reviewMessage}</p>
                       </div>
                     )}
                   </CardContent>

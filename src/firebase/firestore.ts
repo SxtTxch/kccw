@@ -1069,6 +1069,93 @@ export const getVolunteersFromOffers = async (organizationId: string): Promise<a
   }
 };
 
+// Get applications for a specific offer
+export const getOfferApplications = async (offerId: string): Promise<any[]> => {
+  try {
+    console.log('Fetching applications for offer:', offerId);
+    const { collection, query, where, getDocs, doc, getDoc } = await import('firebase/firestore');
+    const { db } = await import('./config');
+    
+    const applicationsRef = collection(db, 'applications');
+    const q = query(applicationsRef, where('offerId', '==', offerId));
+    const querySnapshot = await getDocs(q);
+    
+    const applications = [];
+    
+    for (const appDoc of querySnapshot.docs) {
+      const appData = { id: appDoc.id, ...appDoc.data() };
+      
+      // Get volunteer data
+      try {
+        const userRef = doc(db, 'users', appData.volunteerId);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+          const userData = { id: userSnap.id, ...userSnap.data() };
+          applications.push({
+            ...appData,
+            volunteer: userData
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching volunteer ${appData.volunteerId}:`, error);
+      }
+    }
+    
+    console.log(`Found ${applications.length} applications for offer ${offerId}`);
+    return applications;
+  } catch (error) {
+    console.error('Error fetching offer applications:', error);
+    return [];
+  }
+};
+
+// Update application status (accept/reject)
+export const updateApplicationStatus = async (applicationId: string, status: 'accepted' | 'rejected', message?: string): Promise<boolean> => {
+  try {
+    console.log('Updating application status:', applicationId, status);
+    const { doc, updateDoc, getDoc, arrayUnion } = await import('firebase/firestore');
+    const { db } = await import('./config');
+    
+    const applicationRef = doc(db, 'applications', applicationId);
+    const applicationSnap = await getDoc(applicationRef);
+    
+    if (!applicationSnap.exists()) {
+      console.error('Application not found');
+      return false;
+    }
+    
+    const applicationData = applicationSnap.data();
+    
+    // Update application status
+    await updateDoc(applicationRef, {
+      status: status,
+      reviewedAt: new Date(),
+      reviewMessage: message || ''
+    });
+    
+    // If accepted, add volunteer to offer participants
+    if (status === 'accepted') {
+      const offerRef = doc(db, 'offers', applicationData.offerId);
+      const offerSnap = await getDoc(offerRef);
+      
+      if (offerSnap.exists()) {
+        const offerData = offerSnap.data();
+        await updateDoc(offerRef, {
+          participants: arrayUnion(applicationData.volunteerId),
+          currentParticipants: (offerData.currentParticipants || 0) + 1
+        });
+      }
+    }
+    
+    console.log('Application status updated successfully');
+    return true;
+  } catch (error) {
+    console.error('Error updating application status:', error);
+    return false;
+  }
+};
+
 // Get offer by ID
 export const getOfferById = async (offerId: string): Promise<Offer | null> => {
   try {
