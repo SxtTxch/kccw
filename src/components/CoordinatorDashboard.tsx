@@ -1267,6 +1267,22 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             <span>{offer.category}</span>
                           </div>
                         </div>
+                        
+                        <div className="flex justify-end mt-3">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOffer(offer);
+                              setShowOfferModal(true);
+                            }}
+                            className="text-xs"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Więcej informacji
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>

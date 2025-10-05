@@ -1412,9 +1412,9 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                           </div>
                         </div>
                         {event.applicationData && (
-                          <Badge className={`${getStatusColor(event.status)} text-xs`}>
-                            {getStatusLabel(event.status)}
-                          </Badge>
+                        <Badge className={`${getStatusColor(event.status)} text-xs`}>
+                          {getStatusLabel(event.status)}
+                        </Badge>
                         )}
                       </div>
                     ))}
@@ -1481,22 +1481,22 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                           <div className="flex justify-between items-start">
                             <h4 className="text-lg font-medium text-gray-900">{event.title}</h4>
                             <div className="flex flex-wrap gap-2">
-                              <Badge className={`${getEventTypeColor(event.type)} border text-xs`}>
-                                {getEventTypeLabel(event.type)}
-                              </Badge>
+                            <Badge className={`${getEventTypeColor(event.type)} border text-xs`}>
+                              {getEventTypeLabel(event.type)}
+                            </Badge>
                               {event.applicationData && (
-                                <Badge className={`${getStatusColor(event.status)} text-xs`}>
-                                  {getStatusLabel(event.status)}
-                                </Badge>
+                            <Badge className={`${getStatusColor(event.status)} text-xs`}>
+                              {getStatusLabel(event.status)}
+                            </Badge>
                               )}
                               {event.category && (
                                 <Badge variant="outline" className="text-xs whitespace-nowrap">
                                   {event.category}
                                 </Badge>
                               )}
-                            </div>
                           </div>
-                          
+                        </div>
+                        
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-sm">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -1505,16 +1505,16 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                             </div>
                             
                             <div className="flex items-center gap-2 text-sm">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
+                            <Clock className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium">Godzina:</span>
                               <span className="text-muted-foreground">{event.time}</span>
-                            </div>
+                          </div>
                             
                             <div className="flex items-center gap-2 text-sm">
-                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium">Lokalizacja:</span>
                               <span className="text-muted-foreground">{event.location}</span>
-                            </div>
+                          </div>
                             
                             {event.author && (
                               <div className="flex items-center gap-2 text-sm">
@@ -1625,9 +1625,9 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                             </div>
                           </div>
                           {event.applicationData && (
-                            <Badge className={`${getStatusColor(event.status)} text-xs`}>
-                              {getStatusLabel(event.status)}
-                            </Badge>
+                          <Badge className={`${getStatusColor(event.status)} text-xs`}>
+                            {getStatusLabel(event.status)}
+                          </Badge>
                           )}
                         </div>
                       ))}
