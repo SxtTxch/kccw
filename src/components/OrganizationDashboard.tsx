@@ -1059,14 +1059,15 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     <SelectValue placeholder="Wybierz kategorię" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pomoc-spoleczna">Pomoc społeczna</SelectItem>
-                    <SelectItem value="opieka-nad-zwierzetami">Opieka nad zwierzętami</SelectItem>
-                    <SelectItem value="edukacja">Edukacja</SelectItem>
-                    <SelectItem value="ochrona-srodowiska">Ochrona środowiska</SelectItem>
-                    <SelectItem value="kultura-sztuka">Kultura i sztuka</SelectItem>
-                    <SelectItem value="sport-rekreacja">Sport i rekreacja</SelectItem>
-                    <SelectItem value="pomoc-medyczna">Pomoc medyczna</SelectItem>
-                    <SelectItem value="inne">Inne</SelectItem>
+                    <SelectItem value="Pomoc społeczna">Pomoc społeczna</SelectItem>
+                    <SelectItem value="Opieka nad zwierzętami">Opieka nad zwierzętami</SelectItem>
+                    <SelectItem value="Edukacja">Edukacja</SelectItem>
+                    <SelectItem value="Ekologia">Ekologia</SelectItem>
+                    <SelectItem value="Kultura">Kultura</SelectItem>
+                    <SelectItem value="Sport">Sport</SelectItem>
+                    <SelectItem value="Zdrowie">Zdrowie</SelectItem>
+                    <SelectItem value="Praca z dziećmi">Praca z dziećmi</SelectItem>
+                    <SelectItem value="Inne">Inne</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1236,7 +1237,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             <CardHeader>
               <div className="flex justify-between items-start mb-3">
                 <CardTitle className="text-xl">{selectedOffer.title}</CardTitle>
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex flex-col items-end gap-3">
                   <Badge className={`${getOfferStatusColor(selectedOffer.status)} ${selectedOffer.status === 'active' ? 'ml-2' : ''}`}>
                     {getOfferStatusLabel(selectedOffer.status)}
                   </Badge>
@@ -1915,7 +1916,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         <CardTitle className="text-lg mb-1">{offer.title}</CardTitle>
                         <CardDescription className="mb-2">{offer.category}</CardDescription>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-col items-end gap-3">
                         <Badge className={`${getOfferStatusColor(offer.status)} ${offer.status === 'active' ? 'ml-2' : ''}`}>
                           {getOfferStatusLabel(offer.status)}
                         </Badge>
