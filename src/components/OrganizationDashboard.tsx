@@ -506,7 +506,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [editOfferData, setEditOfferData] = useState<any>({});
   const [volunteerView, setVolunteerView] = useState<'list' | 'profile' | 'review'>('list');
-  const [selectedVolunteer, setSelectedVolunteer] = useState<any>(null);
   const [reviewData, setReviewData] = useState({
     rating: 5,
     comment: '',
