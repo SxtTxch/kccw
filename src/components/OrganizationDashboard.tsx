@@ -860,7 +860,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     activeVolunteers: volunteers.filter(v => v.status === 'active').length,
     totalHours: volunteers.reduce((sum, v) => sum + v.completedHours, 0),
     pendingApplications: pendingApplications.length,
-    pendingCertificates: pendingCertificates.length,
     averageRating: volunteers.reduce((sum, v) => sum + v.rating, 0) / volunteers.length
   };
 
