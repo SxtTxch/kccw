@@ -1474,10 +1474,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     
                     <div className="flex justify-between items-center text-xs text-muted-foreground mb-3">
                       <span>Zgłoszono: {new Date(application.appliedAt.seconds * 1000).toLocaleDateString('pl-PL')}</span>
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        <span>{application.volunteer.age} lat</span>
-                      </div>
                     </div>
 
                     {application.status === 'pending' && (
