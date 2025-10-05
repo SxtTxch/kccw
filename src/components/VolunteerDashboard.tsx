@@ -537,10 +537,8 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
         doc.text(convertPolishToAscii(`• ${req}`), 20, 160 + (index * 8));
       });
       
-      // Date and signature
+      // Date
       doc.text(convertPolishToAscii(`Data zlozenia wniosku: ${new Date().toLocaleDateString('pl-PL')}`), 20, 200);
-      doc.text(convertPolishToAscii('Podpis ucznia: _________________'), 20, 210);
-      doc.text(convertPolishToAscii('Podpis koordynatora: _________________'), 20, 220);
       
       // Save the PDF
       const fileName = `wniosek_zaswiadczenie_${convertPolishToAscii(userProfile?.firstName || '')}_${convertPolishToAscii(userProfile?.lastName || '')}.pdf`;
