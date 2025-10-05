@@ -1031,14 +1031,12 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               </div>
 
               {/* Bounty System Section */}
-              <div className="border-2 border-dashed border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-6 space-y-4">
+              <div className="border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 space-y-4">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">💰</span>
-                  </div>
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg"></div>
                   <div>
-                    <h3 className="text-lg font-semibold text-yellow-800">System Nagród (Bounty)</h3>
-                    <p className="text-sm text-yellow-700">Zachęć wolontariuszy nagrodą pieniężną</p>
+                    <h3 className="text-lg font-semibold text-green-800">System Nagród</h3>
+                    <p className="text-sm text-green-700">Zachęć wolontariuszy nagrodą pieniężną</p>
                   </div>
                 </div>
 
@@ -1049,17 +1047,17 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                       id="hasBounty"
                       checked={newOfferData.hasBounty}
                       onChange={(e) => handleOfferInputChange("hasBounty", e.target.checked)}
-                      className="w-5 h-5 text-yellow-600 bg-yellow-100 border-yellow-300 rounded focus:ring-yellow-500"
+                      className="w-5 h-5 text-green-600 bg-green-100 border-green-300 rounded focus:ring-green-500"
                     />
-                    <Label htmlFor="hasBounty" className="text-yellow-800 font-medium cursor-pointer">
+                    <Label htmlFor="hasBounty" className="text-green-800 font-medium cursor-pointer">
                       Dodaj nagrodę pieniężną dla wolontariuszy
                     </Label>
                   </div>
 
                   {newOfferData.hasBounty && (
-                    <div className="space-y-3 pl-8 border-l-2 border-yellow-300">
+                    <div className="space-y-3 pl-8 border-l-2 border-green-300">
                       <div className="space-y-2">
-                        <Label htmlFor="bountyAmount" className="text-yellow-800 font-medium">
+                        <Label htmlFor="bountyAmount" className="text-green-800 font-medium">
                           Kwota nagrody (PLN) *
                         </Label>
                         <div className="relative">
@@ -1069,14 +1067,14 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                             placeholder="np. 100"
                             value={newOfferData.bountyAmount}
                             onChange={(e) => handleOfferInputChange("bountyAmount", e.target.value)}
-                            className="h-12 pl-8 text-lg font-semibold border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500"
+                            className="h-12 pl-8 text-lg font-semibold border-green-300 focus:border-green-500 focus:ring-green-500"
                           />
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-600 font-bold">zł</span>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 font-bold">zł</span>
                         </div>
                       </div>
-                      <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-3">
-                        <p className="text-sm text-yellow-800">
-                          <strong>💡 Wskazówka:</strong> Nagroda zostanie wypłacona po ukończeniu oferty przez wolontariusza.
+                      <div className="bg-green-100 border border-green-200 rounded-lg p-3">
+                        <p className="text-sm text-green-800">
+                          <strong>Wskazówka:</strong> Nagroda zostanie wypłacona po ukończeniu oferty przez wolontariusza.
                         </p>
                       </div>
                     </div>
