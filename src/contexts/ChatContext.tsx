@@ -234,6 +234,22 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       const messagesData: Message[] = [];
       
       console.log('Found', querySnapshot.size, 'total messages in database');
+      console.log('=== ALL MESSAGES IN DATABASE ===');
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        console.log(`DB Message ${doc.id}:`, {
+          senderId: data.senderId,
+          receiverId: data.receiverId,
+          text: data.text,
+          senderName: data.senderName,
+          timestamp: data.timestamp
+        });
+      });
+      console.log('=== END ALL MESSAGES IN DATABASE ===');
+      console.log('=== FILTERING PARAMETERS ===');
+      console.log('Current User ID:', currentUserId, 'Type:', typeof currentUserId);
+      console.log('Contact ID:', contactId, 'Type:', typeof contactId);
+      console.log('=== END FILTERING PARAMETERS ===');
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
