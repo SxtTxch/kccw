@@ -1203,10 +1203,33 @@ export const signUpForOffer = async (offerId: string, firestoreUserId: string): 
       return false;
     }
     
-    // First, add application to user's offers (this can fail safely)
+    // Get user data for the application
     const userRef = doc(db, 'users', firestoreUserId);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      console.error('User document not found');
+      return false;
+    }
+    
+    const userData = userSnap.data();
+    
+    // Create application in the applications collection
+    const applicationsRef = collection(db, 'applications');
+    const applicationDoc = await addDoc(applicationsRef, {
+      offerId: offerId,
+      volunteerId: firestoreUserId,
+      volunteerName: `${userData.firstName} ${userData.lastName}`,
+      volunteerEmail: userData.email,
+      status: 'pending',
+      appliedAt: new Date(),
+      message: '', // Optional message from volunteer
+      reviewMessage: null
+    });
+    
+    // Also add to user's offers for their own tracking
     const applicationData = {
-      id: Date.now().toString(), // Generate unique ID
+      id: applicationDoc.id,
       offerId: offerId,
       offerTitle: offerData.title,
       organizationName: offerData.organization,
@@ -1215,21 +1238,10 @@ export const signUpForOffer = async (offerId: string, firestoreUserId: string): 
       rejectionMessage: null as string | null
     };
 
-    // Check if user document exists, if not create it
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      console.log('User document does not exist, creating it...');
-      await setDoc(userRef, {
-        offers: [applicationData],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-    } else {
-      await updateDoc(userRef, {
-        offers: arrayUnion(applicationData),
-        updatedAt: serverTimestamp()
-      });
-    }
+    await updateDoc(userRef, {
+      offers: arrayUnion(applicationData),
+      updatedAt: serverTimestamp()
+    });
 
     // Only after successfully adding to user, add to offer participants
     await updateDoc(offerRef, {
