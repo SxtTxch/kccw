@@ -48,6 +48,12 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { StudentProfile } from "./StudentProfile";
+import { 
+  generateMonthlyReport, 
+  generateActivityReport, 
+  generateOrganizationsReport, 
+  generateCertificatesReport 
+} from "../utils/reportGenerator";
 import { getStudentsBySchool, getAllUsers, getAllOffers } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
@@ -1364,19 +1370,35 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <Button variant="outline" className="w-full">
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => generateMonthlyReport(students, offers, organizations, stats)}
+                        >
                           <Download className="h-4 w-4 mr-2" />
-                          Raport miesięczny (październik 2024)
+                          Raport miesięczny
                         </Button>
-                        <Button variant="outline" className="w-full">
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => generateActivityReport(students)}
+                        >
                           <Download className="h-4 w-4 mr-2" />
                           Raport aktywności uczniów
                         </Button>
-                        <Button variant="outline" className="w-full">
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => generateOrganizationsReport(organizations)}
+                        >
                           <Download className="h-4 w-4 mr-2" />
                           Raport organizacji partnerskich
                         </Button>
-                        <Button variant="outline" className="w-full">
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => generateCertificatesReport(certificates)}
+                        >
                           <Download className="h-4 w-4 mr-2" />
                           Raport zaświadczeń
                         </Button>
