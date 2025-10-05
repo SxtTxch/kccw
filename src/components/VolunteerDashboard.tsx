@@ -1880,55 +1880,8 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                             </CardContent>
                           </Card>
                         );
-                      } else if (certificateStatus === 'rejected') {
-                        return (
-                          <Card className="border-red-200 bg-red-50">
-                            <CardContent className="p-4">
-                              <div className="flex items-start gap-3">
-                                <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <h4 className="text-red-800 mb-1">Zaświadczenie odrzucone</h4>
-                                  <p className="text-sm text-red-700">
-                                    Twoje zaświadczenie zostało odrzucone przez koordynatora szkoły.
-                                  </p>
-                                  {latestApplication?.rejectionReason && (
-                                    <p className="text-xs text-red-600 mt-2">
-                                      Powód: {latestApplication.rejectionReason}
-                                    </p>
-                                  )}
-                                  {latestApplication?.processedAt && (
-                                    <p className="text-xs text-red-600 mt-1">
-                                      Odrzucone: {new Date(latestApplication.processedAt.seconds * 1000).toLocaleDateString('pl-PL')}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      } else if (certificateStatus === 'pending') {
-                        return (
-                          <Card className="border-blue-200 bg-blue-50">
-                            <CardContent className="p-4">
-                              <div className="flex items-start gap-3">
-                                <Clock className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <h4 className="text-blue-800 mb-1">Zaświadczenie w trakcie rozpatrywania</h4>
-                                  <p className="text-sm text-blue-700">
-                                    Twoje zaświadczenie oczekuje na zatwierdzenie przez koordynatora szkoły.
-                                  </p>
-                                  {latestApplication?.submittedAt && (
-                                    <p className="text-xs text-blue-600 mt-2">
-                                      Złożone: {new Date(latestApplication.submittedAt.seconds * 1000).toLocaleDateString('pl-PL')}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
                       } else {
-                        // No certificate submitted yet - show the form
+                        // For rejected, pending, or no certificate - show the form
                         return (
                           <CertificateApplication 
                             userProfile={userProfile}
