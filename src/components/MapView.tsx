@@ -294,6 +294,7 @@ export function MapView({ userType }: MapViewProps) {
     });
     
     console.log('Route marker created:', marker);
+    console.log('Marker label should be:', label);
     setRouteMarkers(prev => [...prev, marker]);
   };
 
@@ -582,7 +583,10 @@ export function MapView({ userType }: MapViewProps) {
                   </div>
                   <div className="flex gap-2">
                     <Button 
-                      onClick={saveRoute} 
+                      onClick={() => {
+                        console.log('Save route clicked', { routeStartPoint, routeEndPoint });
+                        saveRoute();
+                      }} 
                       disabled={!routeStartPoint || !routeEndPoint}
                       className="flex-1"
                     >
