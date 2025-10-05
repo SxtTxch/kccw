@@ -1062,17 +1062,6 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                               Zatwierdź
                             </Button>
                           )}
-                          {(!student.certificateStatus || student.certificateStatus === 'none') && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="bg-gray-50 text-gray-700 text-xs px-2 flex-1"
-                              disabled
-                            >
-                              <Clock className="h-3 w-3 mr-1" />
-                              Oczekuje
-                            </Button>
-                          )}
                         </>
                       )}
                       
