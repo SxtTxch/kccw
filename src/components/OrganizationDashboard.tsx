@@ -1870,11 +1870,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               <Card>
                 <CardContent className="p-8 text-center">
                   <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">Nie znaleziono ofert</p>
-                  <Button variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Dodaj pierwszą ofertę
-                  </Button>
+                  <p className="text-muted-foreground">Nie znaleziono ofert</p>
                 </CardContent>
               </Card>
             )}
