@@ -657,6 +657,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
         location: "Kraków",
         startDate: newOfferData.startDate,
         endDate: newOfferData.startDate,
+        duration: newOfferData.duration,
         maxParticipants: parseInt(newOfferData.maxVolunteers) || 0,
         requirements: newOfferData.requirements ? newOfferData.requirements.split(',').map(r => r.trim()) : [],
         benefits: [], // Can be added later
@@ -741,7 +742,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       location: offer.location,
       startDate: offer.startDate,
       endDate: offer.endDate,
-      duration: (offer as any).duration || '',
+      duration: offer.duration || '',
       maxVolunteers: offer.maxParticipants.toString(),
       contactEmail: user.email,
       contactPhone: ""
@@ -1114,7 +1115,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{(selectedOffer as any).duration || 'Nie określono'}</span>
+                  <span>{selectedOffer.duration || 'Nie określono'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -1780,7 +1781,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {(offer as any).duration || 'Nie określono'}
+                        {offer.duration || 'Nie określono'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />

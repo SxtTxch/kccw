@@ -946,6 +946,7 @@ export interface Offer {
   };
   startDate: string;
   endDate: string;
+  duration: string;
   maxParticipants: number;
   currentParticipants: number;
   requirements: string[];
