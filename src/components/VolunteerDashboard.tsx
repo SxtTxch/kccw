@@ -54,6 +54,7 @@ import MyApplications from "./MyApplications";
 import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge, getUserOffers, getOfferById, deleteUserApplication, getCertificateApplications } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import { useChat } from "../contexts/ChatContext";
+import jsPDF from 'jspdf';
 import { RatingComments } from "./RatingComments";
 import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 import { RatingForm } from "./RatingForm";
@@ -480,6 +481,133 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       return (num / 1000).toFixed(1).replace('.0', '') + 'k';
     }
     return num.toString();
+  };
+
+  // Generate volunteer PDF
+  const generateVolunteerPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Helper function to convert Polish characters
+    const convertPolishChars = (text: string): string => {
+      return text
+        .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e').replace(/ł/g, 'l')
+        .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/ź/g, 'z')
+        .replace(/ż/g, 'z').replace(/Ą/g, 'A').replace(/Ć/g, 'C').replace(/Ę/g, 'E')
+        .replace(/Ł/g, 'L').replace(/Ń/g, 'N').replace(/Ó/g, 'O').replace(/Ś/g, 'S')
+        .replace(/Ź/g, 'Z').replace(/Ż/g, 'Z');
+    };
+
+    let yPosition = 20;
+    
+    // Title
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(convertPolishChars('Raport Wolontariusza'), pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 15;
+    
+    // User info
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(convertPolishChars(`${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`), pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(convertPolishChars(`Email: ${userProfile?.email || ''}`), pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 8;
+    
+    if (userProfile?.school) {
+      doc.text(convertPolishChars(`Szkola: ${userProfile.school}`), pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
+    }
+    
+    yPosition += 10;
+    
+    // Statistics section
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(convertPolishChars('Statystyki'), 20, yPosition);
+    yPosition += 15;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(convertPolishChars(`Laczne godziny wolontariatu: ${userProfile?.volunteerHours || 0}`), 20, yPosition);
+    yPosition += 8;
+    doc.text(convertPolishChars(`Ukonczone projekty: ${userProfile?.totalProjects || 0}`), 20, yPosition);
+    yPosition += 8;
+    doc.text(convertPolishChars(`Srednia ocena: ${ratings.averageRating.toFixed(1)} (${ratings.totalRatings} ocen)`), 20, yPosition);
+    yPosition += 8;
+    doc.text(convertPolishChars(`Aktualna seria: ${userProfile?.currentStreak || 0} dni`), 20, yPosition);
+    yPosition += 8;
+    doc.text(convertPolishChars(`Najdluzsza seria: ${userProfile?.longestStreak || 0} dni`), 20, yPosition);
+    yPosition += 8;
+    doc.text(convertPolishChars(`Punkty wplywu: ${userProfile?.impactPoints || 0}`), 20, yPosition);
+    yPosition += 8;
+    doc.text(convertPolishChars(`Osiagniecia specjalne: ${userProfile?.specialAchievements || 0}`), 20, yPosition);
+    yPosition += 15;
+    
+    // Badges section
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(convertPolishChars('Otrzymane Odznaki'), 20, yPosition);
+    yPosition += 15;
+    
+    const earnedBadges = badges.filter(badge => badge.isUnlocked);
+    if (earnedBadges.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      earnedBadges.forEach((badge, index) => {
+        if (yPosition > pageHeight - 30) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(convertPolishChars(`• ${badge.name} (${badge.rarity})`), 20, yPosition);
+        yPosition += 8;
+      });
+    } else {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(convertPolishChars('Brak otrzymanych odznak'), 20, yPosition);
+    }
+    
+    yPosition += 15;
+    
+    // Comments section
+    if (ratings.comments && ratings.comments.length > 0) {
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(convertPolishChars('Opinie'), 20, yPosition);
+      yPosition += 15;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      ratings.comments.forEach((comment: any, index: number) => {
+        if (yPosition > pageHeight - 40) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(convertPolishChars(`Ocena: ${comment.rating}/5`), 20, yPosition);
+        yPosition += 6;
+        if (comment.comment) {
+          const wrappedComment = doc.splitTextToSize(convertPolishChars(comment.comment), pageWidth - 40);
+          doc.text(wrappedComment, 20, yPosition);
+          yPosition += wrappedComment.length * 6;
+        }
+        yPosition += 8;
+      });
+    }
+    
+    // Footer
+    const currentDate = new Date().toLocaleDateString('pl-PL');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(convertPolishChars(`Wygenerowano: ${currentDate}`), pageWidth / 2, pageHeight - 10, { align: 'center' });
+    
+    // Save the PDF
+    const fileName = convertPolishChars(`raport_wolontariusza_${userProfile?.firstName || 'user'}_${userProfile?.lastName || 'profile'}.pdf`);
+    doc.save(fileName);
   };
   const [badges, setBadges] = useState([]);
   const [selectedBadgeCategory, setSelectedBadgeCategory] = useState("all");
@@ -1333,7 +1461,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
               <img 
                 src={logoVertical} 
                 alt="Młody Kraków Logo" 
-                className="h-12.5 w-auto object-contain"
+                className="h-12 w-auto object-contain"
               />
             </div>
             <div>
@@ -1944,6 +2072,24 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                           <LogOut className="h-4 w-4 mr-2" />
                           Wyloguj się
                         </Button>
+                      </CardContent>
+                    </Card>
+
+                    {/* Generate Volunteer PDF */}
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">Wygeneruj raport wolontariusza</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Pobierz PDF z wszystkimi odznakami, osiągnięciami i ocenami
+                            </p>
+                          </div>
+                          <Button onClick={generateVolunteerPDF} variant="outline">
+                            <FileText className="h-4 w-4 mr-2" />
+                            Pobierz PDF
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
 
