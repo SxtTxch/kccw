@@ -396,6 +396,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [loadingCalendarEvents, setLoadingCalendarEvents] = useState(false);
   const [offerToDelete, setOfferToDelete] = useState<Offer | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(false);
+  const [showVolunteerProfile, setShowVolunteerProfile] = useState(false);
+  const [selectedVolunteer, setSelectedVolunteer] = useState<any>(null);
   const [reviews] = useState<Review[]>(mockReviews);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -822,6 +824,25 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const cancelDeleteOffer = () => {
     setOfferToDelete(null);
     setDeleteConfirmation(false);
+  };
+
+  const handleViewVolunteerProfile = async (volunteerId: string) => {
+    try {
+      // Fetch volunteer data from Firebase
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { db } = await import('../firebase/config');
+      
+      const userRef = doc(db, 'users', volunteerId);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const volunteerData = { id: userSnap.id, ...userSnap.data() };
+        setSelectedVolunteer(volunteerData);
+        setShowVolunteerProfile(true);
+      }
+    } catch (error) {
+      console.error('Error fetching volunteer profile:', error);
+    }
   };
 
   // Get dates that have offers
@@ -1510,6 +1531,18 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                     
                     <div className="flex justify-between items-center text-xs text-muted-foreground mb-3">
                       <span>Zgłoszono: {new Date(application.appliedAt.seconds * 1000).toLocaleDateString('pl-PL')}</span>
+                    </div>
+
+                    <div className="flex gap-2 mb-3">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => handleViewVolunteerProfile(application.volunteerId)}
+                      >
+                        <User className="h-3 w-3 mr-1" />
+                        Zobacz profil
+                      </Button>
                     </div>
 
                     {application.status === 'pending' && (
@@ -2955,6 +2988,125 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       </div>
       
       <Chat userType={user.userType as "wolontariusz" | "koordynator" | "organizacja"} />
+
+      {/* Volunteer Profile Modal */}
+      {showVolunteerProfile && selectedVolunteer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold">Profil wolontariusza</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowVolunteerProfile(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarFallback className="bg-pink-100 text-pink-600 text-lg">
+                      {selectedVolunteer.firstName?.[0]}{selectedVolunteer.lastName?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h4 className="text-lg font-semibold">
+                      {selectedVolunteer.firstName} {selectedVolunteer.lastName}
+                    </h4>
+                    <p className="text-muted-foreground">{selectedVolunteer.email}</p>
+                    {selectedVolunteer.school && (
+                      <p className="text-sm text-muted-foreground">{selectedVolunteer.school}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {selectedVolunteer.totalProjects || 0}
+                    </div>
+                    <div className="text-sm text-blue-600">Projekty</div>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {selectedVolunteer.totalHours || 0}
+                    </div>
+                    <div className="text-sm text-green-600">Godziny</div>
+                  </div>
+                </div>
+
+                {/* Badges */}
+                {selectedVolunteer.badges && (
+                  <div>
+                    <h5 className="text-lg font-semibold mb-3">Odznaki</h5>
+                    <div className="grid grid-cols-3 gap-3">
+                      {Object.entries(selectedVolunteer.badges).map(([badgeName, badgeData]: [string, any]) => (
+                        <div
+                          key={badgeName}
+                          className={`p-3 rounded-lg text-center ${
+                            badgeData.earned || badgeData.isUnlocked
+                              ? 'bg-yellow-50 border-2 border-yellow-200'
+                              : 'bg-gray-50 border-2 border-gray-200'
+                          }`}
+                        >
+                          <div className="text-2xl mb-1">
+                            {badgeName === 'witaj' && '👋'}
+                            {badgeName === 'aktywny' && '⚡'}
+                            {badgeName === 'bohater' && '🦸'}
+                            {badgeName === 'pomocnik' && '🤝'}
+                            {badgeName === 'zmiana' && '🌱'}
+                            {badgeName === 'mentor' && '🎓'}
+                            {badgeName === 'ambasador' && '🌟'}
+                            {badgeName === 'debiutant' && '🆕'}
+                            {badgeName === 'zaangazowany' && '💪'}
+                            {badgeName === 'epicki' && '🏆'}
+                            {badgeName === 'niezdomny' && '🏠'}
+                            {badgeName === 'eko' && '🌍'}
+                            {badgeName === 'kulturowy' && '🎭'}
+                            {badgeName === 'sportowy' && '⚽'}
+                          </div>
+                          <div className="text-xs font-medium">
+                            {badgeName === 'witaj' && 'Witaj!'}
+                            {badgeName === 'aktywny' && 'Aktywny'}
+                            {badgeName === 'bohater' && 'Bohater'}
+                            {badgeName === 'pomocnik' && 'Pomocnik'}
+                            {badgeName === 'zmiana' && 'Zmiana'}
+                            {badgeName === 'mentor' && 'Mentor'}
+                            {badgeName === 'ambasador' && 'Ambasador'}
+                            {badgeName === 'debiutant' && 'Debiutant'}
+                            {badgeName === 'zaangazowany' && 'Zaangażowany'}
+                            {badgeName === 'epicki' && 'Epicki'}
+                            {badgeName === 'niezdomny' && 'Niezłomny'}
+                            {badgeName === 'eko' && 'Eko'}
+                            {badgeName === 'kulturowy' && 'Kulturowy'}
+                            {badgeName === 'sportowy' && 'Sportowy'}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {badgeData.earned || badgeData.isUnlocked ? 'Zdobyta' : 'Niezdobyta'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* About */}
+                {selectedVolunteer.bio && (
+                  <div>
+                    <h5 className="text-lg font-semibold mb-3">O sobie</h5>
+                    <p className="text-sm text-muted-foreground">{selectedVolunteer.bio}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
