@@ -216,6 +216,7 @@ export function MapView({ userType }: MapViewProps) {
 
   // Route creation functions
   const startRouteCreation = () => {
+    console.log('Starting route creation...');
     setIsCreatingRoute(true);
     setRouteStartPoint(null);
     setRouteEndPoint(null);
@@ -226,6 +227,7 @@ export function MapView({ userType }: MapViewProps) {
       routeDirections.setMap(null);
       setRouteDirections(null);
     }
+    console.log('Route creation mode activated');
   };
 
   const cancelRouteCreation = () => {
@@ -242,17 +244,26 @@ export function MapView({ userType }: MapViewProps) {
   };
 
   const handleMapClick = (event: any, map: any) => {
-    if (!isCreatingRoute) return;
+    console.log('Map clicked!', { isCreatingRoute, routeStartPoint, routeEndPoint });
+    
+    if (!isCreatingRoute) {
+      console.log('Not in route creation mode');
+      return;
+    }
 
     const latLng = event.latLng;
     const lat = latLng.lat();
     const lng = latLng.lng();
 
+    console.log('Click coordinates:', { lat, lng });
+
     if (!routeStartPoint) {
+      console.log('Setting start point');
       // Set start point
       setRouteStartPoint({ lat, lng });
       addMarker(map, lat, lng, 'A', '#4CAF50');
     } else if (!routeEndPoint) {
+      console.log('Setting end point');
       // Set end point
       setRouteEndPoint({ lat, lng });
       addMarker(map, lat, lng, 'B', '#F44336');
@@ -262,6 +273,8 @@ export function MapView({ userType }: MapViewProps) {
   };
 
   const addMarker = (map: any, lat: number, lng: number, label: string, color: string) => {
+    console.log('Adding marker:', { lat, lng, label, color });
+    
     // Create a custom marker element
     const markerElement = document.createElement('div');
     markerElement.style.width = '40px';
@@ -278,12 +291,14 @@ export function MapView({ userType }: MapViewProps) {
     markerElement.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
     markerElement.textContent = label;
 
+    console.log('Creating AdvancedMarkerElement...');
     const marker = new (window as any).google.maps.marker.AdvancedMarkerElement({
       position: { lat, lng },
       map: map,
       content: markerElement
     });
     
+    console.log('Marker created:', marker);
     setRouteMarkers(prev => [...prev, marker]);
   };
 
