@@ -43,6 +43,14 @@ export function Chat({ userType }: ChatProps) {
     markMessagesAsRead
   } = useChat();
   const { userProfile } = useAuth();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Get currentUserId from localStorage to match ChatContext
+  useEffect(() => {
+    const userId = localStorage.getItem('currentUserId');
+    console.log('Chat component - currentUserId from localStorage:', userId);
+    setCurrentUserId(userId);
+  }, []);
   const [isMinimized, setIsMinimized] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [searchEmail, setSearchEmail] = useState("");
@@ -111,10 +119,22 @@ export function Chat({ userType }: ChatProps) {
   }, [messages]);
 
   const handleSendMessage = async () => {
+    console.log('handleSendMessage called');
+    console.log('newMessage:', newMessage);
+    console.log('currentContact:', currentContact);
+    console.log('currentUserId:', currentUserId);
+    
     if (newMessage.trim() && currentContact) {
       console.log('Sending message to:', currentContact.id, 'Text:', newMessage.trim());
-      await sendMessage(newMessage.trim(), currentContact.id);
-      setNewMessage("");
+      try {
+        await sendMessage(newMessage.trim(), currentContact.id);
+        setNewMessage("");
+        console.log('Message sent successfully');
+      } catch (error) {
+        console.error('Error in handleSendMessage:', error);
+      }
+    } else {
+      console.log('Cannot send message - missing contact or empty message');
     }
   };
 
@@ -452,8 +472,9 @@ export function Chat({ userType }: ChatProps) {
                 </div>
               ) : (
                 messages.map((message) => {
-                  const isCurrentUser = message.senderId === userProfile?.id;
-                  console.log('Rendering message:', message, 'isCurrentUser:', isCurrentUser);
+                  // Convert to strings to handle type mismatches
+                  const isCurrentUser = String(message.senderId) === String(currentUserId);
+                  console.log('Rendering message:', message, 'isCurrentUser:', isCurrentUser, 'currentUserId:', currentUserId, 'senderId:', message.senderId);
                   return (
                     <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                       <div className="max-w-[80%]">

@@ -134,8 +134,11 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   };
 
   const sendMessage = async (text: string, receiverId: string) => {
+    console.log('sendMessage called with:', { text, receiverId, currentUserId });
+    
     if (!currentUserId || !text.trim()) {
       console.log('Cannot send message - missing currentUserId or empty text');
+      console.log('currentUserId:', currentUserId, 'text:', text);
       return;
     }
 
@@ -156,6 +159,12 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       console.log('Sending message to Firebase:', messageData);
       const docRef = await addDoc(collection(db, 'messages'), messageData);
       console.log('Message sent successfully with ID:', docRef.id);
+      
+      // Reload messages to show the new message
+      if (currentContact) {
+        console.log('Reloading messages after sending');
+        await loadMessages(currentContact.id);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -213,8 +222,14 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         const data = doc.data();
         
         // Filter messages between current user and contact
-        if ((data.senderId === currentUserId && data.receiverId === contactId) ||
-            (data.senderId === contactId && data.receiverId === currentUserId)) {
+        // Convert to strings to handle type mismatches
+        const senderIdStr = String(data.senderId);
+        const receiverIdStr = String(data.receiverId);
+        const currentUserIdStr = String(currentUserId);
+        const contactIdStr = String(contactId);
+        
+        if ((senderIdStr === currentUserIdStr && receiverIdStr === contactIdStr) ||
+            (senderIdStr === contactIdStr && receiverIdStr === currentUserIdStr)) {
           messagesData.push({
             id: doc.id,
             text: data.text,
