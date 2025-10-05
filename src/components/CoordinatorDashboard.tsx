@@ -1665,24 +1665,6 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                               </span>
                             </div>
                           </div>
-                          
-                          {/* Average Student Rating - based on students with ratings */}
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm">Średnia ocena uczniów</span>
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 h-2 bg-gray-200 rounded-full">
-                                <div 
-                                  className="h-2 bg-yellow-500 rounded-full transition-all duration-300"
-                                  style={{ 
-                                    width: `${stats.averageRating > 0 ? (stats.averageRating / 5) * 100 : 0}%` 
-                                  }}
-                                ></div>
-                              </div>
-                              <span className="text-sm text-muted-foreground">
-                                {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '0.0'}/5.0
-                              </span>
-                            </div>
-                          </div>
                         </div>
                       </CardContent>
                     </Card>
