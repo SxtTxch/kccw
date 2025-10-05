@@ -1817,9 +1817,9 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                     </Card>
                   </TabsContent>
                   
-                  <TabsContent value="certificates-section" className="mt-4">
-                    {/* Zaświadczenia zostają przeniesione z oryginalnej sekcji */}
-                    {pendingCertificates.length > 0 && (
+                  <TabsContent value="certificates-section" className="mt-4 space-y-4">
+                    {/* Pending Certificate Applications Alert */}
+                    {pendingApplications.length > 0 && (
                       <Card className="border-yellow-200 bg-yellow-50">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-3">
@@ -1827,16 +1827,146 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             <div>
                               <h4 className="text-yellow-800 mb-1">Oczekujące zaświadczenia</h4>
                               <p className="text-sm text-yellow-700">
-                                {pendingCertificates.length} zaświadczenie{pendingCertificates.length > 1 ? 'ń' : ''} oczekuje na zatwierdzenie
+                                {pendingApplications.length} zaświadczenie{pendingApplications.length > 1 ? 'ń' : ''} oczekuje na zatwierdzenie
                               </p>
                             </div>
                           </div>
                         </CardContent>
                       </Card>
                     )}
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Pełna funkcjonalność zaświadczeń dostępna wkrótce</p>
-                    </div>
+
+                    {/* Certificate Applications List */}
+                    {certificateApplications.length > 0 ? (
+                      <div className="space-y-4">
+                        {certificateApplications.map((application) => (
+                          <Card key={application.id} className={`border-l-4 ${
+                            application.status === 'pending' ? 'border-l-blue-500' :
+                            application.status === 'approved' ? 'border-l-green-500' : 'border-l-red-500'
+                          }`}>
+                            <CardHeader className="pb-3">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <CardTitle className="text-lg mb-1">{application.studentName}</CardTitle>
+                                  <CardDescription className="mb-2">{application.projectTitle}</CardDescription>
+                                </div>
+                                <Badge className={`${
+                                  application.status === 'pending' ? 'bg-blue-100 text-blue-800' :
+                                  application.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {application.status === 'pending' ? 'Oczekuje' : 
+                                   application.status === 'approved' ? 'Zatwierdzone' : 'Odrzucone'}
+                                </Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {application.volunteerHours} godzin
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {new Date(application.startDate).toLocaleDateString('pl-PL')} - {new Date(application.endDate).toLocaleDateString('pl-PL')}
+                                </div>
+                              </div>
+                            </CardHeader>
+                            
+                            <CardContent className="pt-0">
+                              <div className="space-y-3">
+                                <div>
+                                  <h5 className="text-sm font-medium mb-1">Opis projektu:</h5>
+                                  <p className="text-sm text-muted-foreground">{application.projectDescription}</p>
+                                </div>
+                                
+                                {application.achievements && (
+                                  <div>
+                                    <h5 className="text-sm font-medium mb-1">Osiągnięcia:</h5>
+                                    <p className="text-sm text-muted-foreground">{application.achievements}</p>
+                                  </div>
+                                )}
+                                
+                                {application.skills && application.skills.length > 0 && (
+                                  <div>
+                                    <h5 className="text-sm font-medium mb-1">Umiejętności:</h5>
+                                    <div className="flex flex-wrap gap-1">
+                                      {application.skills.map((skill: string, index: number) => (
+                                        <Badge key={index} variant="secondary" className="text-xs">
+                                          {skill}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {application.status === 'pending' && (
+                                  <div className="flex gap-2 pt-2">
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => handleCertificateApproval(application.id, true)}
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      Zatwierdź
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => {
+                                        const reason = prompt('Podaj powód odrzucenia:');
+                                        if (reason) {
+                                          handleCertificateApproval(application.id, false, reason);
+                                        }
+                                      }}
+                                      className="border-red-300 text-red-600 hover:bg-red-50"
+                                    >
+                                      <XCircle className="h-4 w-4 mr-1" />
+                                      Odrzuć
+                                    </Button>
+                                    {application.pdfData && (
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => {
+                                          // Open PDF in new window
+                                          const pdfWindow = window.open();
+                                          if (pdfWindow) {
+                                            pdfWindow.document.write(`
+                                              <html>
+                                                <head><title>Zaświadczenie - ${application.studentName}</title></head>
+                                                <body style="margin:0; padding:0;">
+                                                  <iframe src="${application.pdfData}" width="100%" height="100%" style="border:none;"></iframe>
+                                                </body>
+                                              </html>
+                                            `);
+                                            pdfWindow.document.close();
+                                          }
+                                        }}
+                                        className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                                      >
+                                        <Download className="h-4 w-4 mr-1" />
+                                        Zobacz PDF
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {application.status === 'rejected' && application.rejectionReason && (
+                                  <div className="bg-red-50 border border-red-200 rounded p-2">
+                                    <h5 className="text-sm font-medium text-red-800 mb-1">Powód odrzucenia:</h5>
+                                    <p className="text-sm text-red-700">{application.rejectionReason}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Brak zaświadczeń</h3>
+                        <p className="text-sm text-muted-foreground">Nie ma żadnych zaświadczeń do przetworzenia</p>
+                      </div>
+                    )}
                   </TabsContent>
                   
                   <TabsContent value="map-section" className="mt-4">
