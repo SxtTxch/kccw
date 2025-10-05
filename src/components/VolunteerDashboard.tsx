@@ -487,7 +487,76 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     totalRatings: 0,
     comments: []
   });
+  const [certificateStatus, setCertificateStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
   // Removed showRatingForm state since self-rating is not allowed
+
+  // Generate and submit certificate application
+  const generateAndSubmitCertificate = async () => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { convertPolishToAscii } = await import('../utils/textUtils');
+      
+      const doc = new jsPDF();
+      
+      // Title
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Wniosek o zaświadczenie wolontariatu', 20, 30);
+      
+      // Student information
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Dane ucznia:', 20, 50);
+      
+      const studentData = [
+        `Imię i nazwisko: ${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`,
+        `Data urodzenia: ${userProfile?.birthDate || ''}`,
+        `Szkoła: ${userProfile?.schoolName || ''}`,
+        `Email: ${userProfile?.email || ''}`,
+        `Telefon: ${userProfile?.phone || 'Brak danych'}`
+      ];
+      
+      studentData.forEach((line, index) => {
+        doc.text(convertPolishToAscii(line), 20, 65 + (index * 8));
+      });
+      
+      // Purpose
+      doc.text('Cel zaświadczenia:', 20, 120);
+      doc.text(convertPolishToAscii('Uczestnictwo w programie wolontariatu młodzieżowego'), 20, 130);
+      
+      // Required information
+      doc.text('Wymagane informacje:', 20, 150);
+      const requirements = [
+        'Potwierdzenie tożsamości i wieku',
+        'Zgoda na uczestnictwo w wolontariacie',
+        'Dane kontaktowe koordynatora',
+        'Podpis i pieczęć szkoły'
+      ];
+      
+      requirements.forEach((req, index) => {
+        doc.text(convertPolishToAscii(`• ${req}`), 20, 160 + (index * 8));
+      });
+      
+      // Date and signature
+      doc.text(`Data złożenia wniosku: ${new Date().toLocaleDateString('pl-PL')}`, 20, 200);
+      doc.text('Podpis ucznia: _________________', 20, 210);
+      doc.text('Podpis koordynatora: _________________', 20, 220);
+      
+      // Save the PDF
+      const fileName = `wniosek_zaswiadczenie_${convertPolishToAscii(userProfile?.firstName || '')}_${convertPolishToAscii(userProfile?.lastName || '')}.pdf`;
+      doc.save(fileName);
+      
+      // Submit to coordinator (simulate submission)
+      setCertificateStatus('pending');
+      console.log('Certificate application submitted to coordinator');
+      
+      // Here you would normally send to Firebase and notify coordinator
+      // For now, we'll just update the local state
+      
+    } catch (error) {
+      console.error('Error generating certificate application:', error);
+    }
+  };
 
   // Sync badges to Firestore when they're earned
   const syncBadgesToFirestore = async () => {
@@ -1062,6 +1131,12 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     try {
       if (!userProfile?.id) {
         console.log("User not logged in - cannot apply to offer");
+        return;
+      }
+
+      // Check if user is a minor and doesn't have approved certificate
+      if (user.isMinor && certificateStatus !== 'approved') {
+        alert('Jako osoba poniżej 18 roku życia, musisz mieć zaakceptowane zaświadczenie od koordynatora szkolnego, aby móc uczestniczyć w wolontariacie.');
         return;
       }
 
@@ -1828,23 +1903,122 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                       />
                     )}
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          Moje zaświadczenia
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Tutaj znajdziesz zaświadczenia o wykonanym wolontariacie
-                        </p>
-                        <Button variant="outline" className="w-full" disabled>
-                          <FileText className="h-4 w-4 mr-2" />
-                          Brak zaświadczeń
-                        </Button>
-                      </CardContent>
-                    </Card>
+                    {/* Certificate Submission for Minors */}
+                    {user.isMinor && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Zgłoś zaświadczenie
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                              <h4 className="font-semibold text-amber-900 mb-2">Wymagane zaświadczenie</h4>
+                              <p className="text-sm text-amber-800 mb-3">
+                                Jako osoba poniżej 18 roku życia, musisz uzyskać zaświadczenie od swojego 
+                                koordynatora szkolnego, aby móc uczestniczyć w wolontariacie.
+                              </p>
+                              <div className="text-sm text-amber-700">
+                                <p><strong>Co zawiera zaświadczenie:</strong></p>
+                                <ul className="list-disc list-inside mt-1 space-y-1">
+                                  <li>Potwierdzenie tożsamości i wieku</li>
+                                  <li>Zgoda na uczestnictwo w wolontariacie</li>
+                                  <li>Dane kontaktowe koordynatora</li>
+                                  <li>Podpis i pieczęć szkoły</li>
+                                </ul>
+                              </div>
+                            </div>
+                            
+                            {certificateStatus === 'none' && (
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={() => {
+                                  generateAndSubmitCertificate();
+                                }}
+                              >
+                                <FileText className="h-4 w-4 mr-2" />
+                                Zgłoś zaświadczenie
+                              </Button>
+                            )}
+                            
+                            {certificateStatus === 'pending' && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-yellow-800">
+                                  <Clock className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Oczekuje na zatwierdzenie</span>
+                                </div>
+                                <p className="text-xs text-yellow-700 mt-1">
+                                  Twoje zaświadczenie zostało wysłane do koordynatora szkolnego.
+                                </p>
+                              </div>
+                            )}
+                            
+                            {certificateStatus === 'approved' && (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-green-800">
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Zaświadczenie zatwierdzone</span>
+                                </div>
+                                <p className="text-xs text-green-700 mt-1">
+                                  Możesz teraz uczestniczyć w wolontariacie.
+                                </p>
+                              </div>
+                            )}
+                            
+                            {certificateStatus === 'rejected' && (
+                              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-red-800">
+                                  <XCircle className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Zaświadczenie odrzucone</span>
+                                </div>
+                                <p className="text-xs text-red-700 mt-1">
+                                  Skontaktuj się z koordynatorem szkolnym w celu wyjaśnienia.
+                                </p>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="mt-2"
+                                  onClick={() => {
+                                    generateAndSubmitCertificate();
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Zgłoś ponownie
+                                </Button>
+                              </div>
+                            )}
+                            
+                            <div className="text-xs text-muted-foreground">
+                              <p><strong>Uwaga:</strong> Bez zaakceptowanego zaświadczenia nie możesz przystąpić do wolontariatu.</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Regular Certificate Card for Adults */}
+                    {!user.isMinor && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Moje zaświadczenia
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Tutaj znajdziesz zaświadczenia o wykonanym wolontariacie
+                          </p>
+                          <Button variant="outline" className="w-full" disabled>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Brak zaświadczeń
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
 
                     <Card>
                       <CardContent className="p-4">
