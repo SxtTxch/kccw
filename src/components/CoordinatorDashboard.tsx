@@ -49,6 +49,7 @@ import { EditProfile } from "./EditProfile";
 import { StudentProfile } from "./StudentProfile";
 import { getStudentsBySchool } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
+import { useChat } from "../contexts/ChatContext";
 
 interface User {
   id: number;
@@ -393,6 +394,7 @@ const mockCalendarEvents: CalendarEvent[] = [
 
 export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardProps) {
   const { userProfile } = useAuth();
+  const { openChat } = useChat();
   const [activeTab, setActiveTab] = useState("students");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -592,9 +594,19 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
               <p className="text-sm text-muted-foreground">{user.schoolName}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onLogout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => openChat()}
+              title="Otwórz chat"
+            >
+              <MessageCircle className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onLogout}>
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </div>
 

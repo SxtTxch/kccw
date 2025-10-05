@@ -51,6 +51,7 @@ import { EditProfile } from "./EditProfile";
 import MyApplications from "./MyApplications";
 import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
+import { useChat } from "../contexts/ChatContext";
 import { RatingComments } from "./RatingComments";
 import { RatingForm } from "./RatingForm";
 import { StarRating } from "./StarRating";
@@ -446,6 +447,7 @@ const mockCompletedActions: CompletedAction[] = [
 
 export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) {
   const { userProfile, user: authUser } = useAuth();
+  const { openChat } = useChat();
   const [activeTab, setActiveTab] = useState("offers");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -1109,9 +1111,19 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onLogout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => openChat()}
+              title="Otwórz chat"
+            >
+              <MessageCircle className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onLogout}>
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </div>
 

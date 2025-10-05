@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -67,6 +67,7 @@ import { MapView } from "./MapView";
 import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton } from "./Chat";
 import { EditProfile } from "./EditProfile";
+import { useChat } from "../contexts/ChatContext";
 
 interface User {
   id: number;
@@ -468,6 +469,7 @@ const mockOrganizationMembers: OrganizationMember[] = [
 ];
 
 export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardProps) {
+  const { openChat } = useChat();
   const [activeTab, setActiveTab] = useState("offers");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -1599,9 +1601,19 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               <p className="text-sm text-muted-foreground">{user.organizationName}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onLogout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => openChat()}
+              title="Otwórz chat"
+            >
+              <MessageCircle className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onLogout}>
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </div>
 

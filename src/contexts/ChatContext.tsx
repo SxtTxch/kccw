@@ -42,10 +42,10 @@ interface ChatContextType {
   currentContact: ChatContact | null;
   messages: Message[];
   contacts: ChatContact[];
-  openChat: (contact: ChatContact) => void;
+  openChat: (contact?: ChatContact) => void;
   closeChat: () => void;
   sendMessage: (text: string, receiverId: string) => Promise<void>;
-  searchUserByEmail: (email: string) => Promise<ChatContact | null>;
+  searchUserByEmail: (email: string) => Promise<ChatContact[]>;
   loadContacts: () => Promise<void>;
 }
 
@@ -85,12 +85,20 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     };
   }, [unsubscribeMessages]);
 
-  const openChat = (contact: ChatContact) => {
+  const openChat = (contact?: ChatContact) => {
     console.log('Opening chat with:', contact);
     
     // Clean up previous message listener
     if (unsubscribeMessages) {
       unsubscribeMessages();
+    }
+    
+    // If no contact provided, open chat without target
+    if (!contact) {
+      setCurrentContact(null);
+      setIsChatOpen(true);
+      setMessages([]);
+      return;
     }
     
     setCurrentContact(contact);
@@ -139,31 +147,35 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     }
   };
 
-  const searchUserByEmail = async (email: string): Promise<ChatContact | null> => {
+  const searchUserByEmail = async (email: string): Promise<ChatContact[]> => {
     try {
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
+      const q = query(usersRef, where('email', '>=', email), where('email', '<=', email + '\uf8ff'));
       const querySnapshot = await getDocs(q);
       
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data();
-        
-        return {
-          id: userDoc.id,
-          name: userData.firstName + ' ' + userData.lastName,
-          email: userData.email,
-          role: userData.userType || 'wolontariusz',
-          organization: userData.organizationName,
-          avatar: userData.avatar,
-          isOnline: true, // For now, assume all users are online
-          lastSeen: 'Online'
-        };
-      }
-      return null;
+      const results: ChatContact[] = [];
+      querySnapshot.forEach((doc) => {
+        const userData = doc.data();
+        // Don't include current user in search results
+        if (doc.id !== currentUserId) {
+          results.push({
+            id: doc.id,
+            name: userData.firstName + ' ' + userData.lastName,
+            email: userData.email,
+            role: userData.userType || 'wolontariusz',
+            organization: userData.organizationName,
+            avatar: userData.avatar,
+            isOnline: true, // For now, assume all users are online
+            lastSeen: 'Online'
+          });
+        }
+      });
+      
+      console.log('Search results for:', email, 'found:', results.length, 'users');
+      return results;
     } catch (error) {
       console.error('Error searching user:', error);
-      return null;
+      return [];
     }
   };
 

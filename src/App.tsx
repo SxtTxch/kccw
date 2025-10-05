@@ -119,6 +119,29 @@ function AppContent() {
 
   const handleRegistration = async () => {
     try {
+      // Validate age for volunteers
+      if (selectedUserType === "wolontariusz" && registrationData.birthDate) {
+        const today = new Date();
+        const birthDate = new Date(registrationData.birthDate);
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        // Check if birthday hasn't occurred this year
+        const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) 
+          ? age - 1 
+          : age;
+        
+        if (actualAge < 13) {
+          alert('Musisz mieć co najmniej 13 lat, aby się zarejestrować');
+          return;
+        }
+        
+        if (actualAge > 120) {
+          alert('Wiek nie może przekraczać 120 lat');
+          return;
+        }
+      }
+      
       // Check Firebase initialization
       const { checkFirebaseInitialization } = await import('./firebase/config');
       const firebaseStatus = checkFirebaseInitialization();
@@ -771,7 +794,31 @@ function AppContent() {
                           id="birthDate"
                           type="date"
                           value={registrationData.birthDate}
-                          onChange={(e) => handleRegistrationInputChange("birthDate", e.target.value)}
+                          onChange={(e) => {
+                            const selectedDate = e.target.value;
+                            const today = new Date();
+                            const birthDate = new Date(selectedDate);
+                            const age = today.getFullYear() - birthDate.getFullYear();
+                            const monthDiff = today.getMonth() - birthDate.getMonth();
+                            
+                            // Check if birthday hasn't occurred this year
+                            const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) 
+                              ? age - 1 
+                              : age;
+                            
+                            // Validate age
+                            if (selectedDate && (actualAge < 0 || actualAge > 120)) {
+                              alert('Wiek musi być między 0 a 120 lat');
+                              return;
+                            }
+                            
+                            if (selectedDate && actualAge < 13) {
+                              alert('Musisz mieć co najmniej 13 lat, aby się zarejestrować');
+                              return;
+                            }
+                            
+                            handleRegistrationInputChange("birthDate", selectedDate);
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               document.getElementById('volunteerSchoolName')?.focus();
@@ -779,7 +826,11 @@ function AppContent() {
                           }}
                           className="h-12"
                           required
+                          max={new Date().toISOString().split('T')[0]} // Cannot select future dates
                         />
+                        <p className="text-xs text-gray-500">
+                          Musisz mieć co najmniej 13 lat, aby się zarejestrować
+                        </p>
                       </div>
 
                       <div className="space-y-2">
