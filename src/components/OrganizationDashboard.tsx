@@ -42,6 +42,7 @@ import {
   Plus,
   Edit,
   Trash2,
+  X,
   Send,
   UserX,
   ThumbsUp,
