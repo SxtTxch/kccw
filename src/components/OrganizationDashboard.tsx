@@ -490,6 +490,24 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState(user);
+
+  // Map organization data from user prop to currentUser state
+  useEffect(() => {
+    if (user) {
+      const mappedUser = {
+        ...user,
+        // Map organization fields from Firebase structure if needed
+        organizationName: user.organizationName || user.organizationInfo?.organizationName || '',
+        organizationType: user.organizationType || user.organizationInfo?.organizationType || '',
+        krsNumber: user.krsNumber || user.organizationInfo?.krsNumber || '',
+        bio: user.bio || user.organizationInfo?.description || '',
+        skills: user.skills || [],
+        achievements: user.achievements || [],
+        website: user.website || ''
+      };
+      setCurrentUser(mappedUser);
+    }
+  }, [user]);
   const [organizationMembers, setOrganizationMembers] = useState<OrganizationMember[]>(mockOrganizationMembers);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMember, setNewMember] = useState({
@@ -768,7 +786,21 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   };
 
   const handleProfileSave = (updatedUser: any) => {
-    setCurrentUser(updatedUser);
+    // Map organization data from EditProfile structure to currentUser structure
+    const updatedCurrentUser = {
+      ...currentUser,
+      ...updatedUser,
+      // Ensure organization fields are properly mapped
+      organizationName: updatedUser.organizationName || currentUser.organizationName,
+      organizationType: updatedUser.organizationType || currentUser.organizationType,
+      krsNumber: updatedUser.krsNumber || currentUser.krsNumber,
+      bio: updatedUser.bio || currentUser.bio,
+      skills: updatedUser.skills || currentUser.skills,
+      achievements: updatedUser.achievements || currentUser.achievements,
+      website: updatedUser.website || currentUser.website
+    };
+    
+    setCurrentUser(updatedCurrentUser);
     setIsEditingProfile(false);
   };
 
