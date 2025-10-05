@@ -1114,7 +1114,7 @@ export const getOfferApplications = async (offerId: string): Promise<any[]> => {
 export const updateApplicationStatus = async (applicationId: string, status: 'accepted' | 'rejected', message?: string): Promise<boolean> => {
   try {
     console.log('Updating application status:', applicationId, status);
-    const { doc, updateDoc, getDoc, arrayUnion } = await import('firebase/firestore');
+    const { doc, updateDoc, getDoc, arrayUnion, deleteDoc } = await import('firebase/firestore');
     const { db } = await import('./config');
     
     const applicationRef = doc(db, 'applications', applicationId);
@@ -1127,36 +1127,67 @@ export const updateApplicationStatus = async (applicationId: string, status: 'ac
     
     const applicationData = applicationSnap.data();
     
-    // Update application status
-    await updateDoc(applicationRef, {
-      status: status,
-      reviewedAt: new Date(),
-      reviewMessage: message || ''
-    });
-    
-    // Update user's application status
-    const userRef = doc(db, 'users', applicationData.volunteerId);
-    const userSnap = await getDoc(userRef);
-    
-    if (userSnap.exists()) {
-      const userData = userSnap.data();
-      if (userData.offers) {
-        // Find and update the specific application in user's offers
-        const updatedOffers = userData.offers.map((offer: any) => {
-          if (offer.id === applicationId) {
-            return {
-              ...offer,
-              status: status,
-              rejectionMessage: status === 'rejected' ? message : null
-            };
-          }
-          return offer;
-        });
-        
-        await updateDoc(userRef, {
-          offers: updatedOffers,
-          updatedAt: serverTimestamp()
-        });
+    if (status === 'rejected') {
+      // Delete the application from the applications collection
+      await deleteDoc(applicationRef);
+      
+      // Update user's application status to rejected
+      const userRef = doc(db, 'users', applicationData.volunteerId);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData.offers) {
+          // Find and update the specific application in user's offers
+          const updatedOffers = userData.offers.map((offer: any) => {
+            if (offer.id === applicationId) {
+              return {
+                ...offer,
+                status: 'rejected',
+                rejectionMessage: message || null
+              };
+            }
+            return offer;
+          });
+          
+          await updateDoc(userRef, {
+            offers: updatedOffers,
+            updatedAt: serverTimestamp()
+          });
+        }
+      }
+    } else {
+      // For accepted applications, just update the status
+      await updateDoc(applicationRef, {
+        status: status,
+        reviewedAt: new Date(),
+        reviewMessage: message || ''
+      });
+      
+      // Update user's application status
+      const userRef = doc(db, 'users', applicationData.volunteerId);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData.offers) {
+          // Find and update the specific application in user's offers
+          const updatedOffers = userData.offers.map((offer: any) => {
+            if (offer.id === applicationId) {
+              return {
+                ...offer,
+                status: status,
+                rejectionMessage: status === 'rejected' ? message : null
+              };
+            }
+            return offer;
+          });
+          
+          await updateDoc(userRef, {
+            offers: updatedOffers,
+            updatedAt: serverTimestamp()
+          });
+        }
       }
     }
     
