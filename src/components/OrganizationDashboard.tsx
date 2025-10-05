@@ -840,21 +840,10 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       if (userSnap.exists()) {
         const volunteerData = { id: userSnap.id, ...userSnap.data() };
         
-        // Calculate total volunteer hours from all offers
-        let totalHours = 0;
-        let totalProjects = 0;
-        if (volunteerData.offers) {
-          volunteerData.offers.forEach((offer: any) => {
-            if (offer.status === 'completed') {
-              if (offer.hours) {
-                totalHours += offer.hours;
-              }
-              totalProjects += 1;
-            }
-          });
-        }
+        // Use Firestore's volunteerHours field
+        const totalHours = volunteerData.volunteerHours || 0;
         
-        // Fetch received opinions to calculate average rating
+        // Fetch all received opinions to calculate average rating
         let averageRating = 0;
         let receivedOpinionsCount = 0;
         try {
@@ -877,20 +866,13 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
             }
           }
         } catch (opinionsError) {
-          console.error('Error fetching opinions:', opinionsError);
-          // Fallback to user's stored opinions if available
-          if (volunteerData.opinions && volunteerData.opinions.length > 0) {
-            const totalRating = volunteerData.opinions.reduce((sum: number, opinion: any) => sum + (opinion.rating || 0), 0);
-            averageRating = totalRating / volunteerData.opinions.length;
-            receivedOpinionsCount = volunteerData.opinions.length;
-          }
+          console.error('Error fetching received opinions:', opinionsError);
         }
         
         // Update volunteer data with calculated values
         const updatedVolunteerData = {
           ...volunteerData,
           totalHours: totalHours,
-          totalProjects: totalProjects,
           averageRating: averageRating > 0 ? averageRating.toFixed(1) : 'N/A',
           receivedOpinionsCount: receivedOpinionsCount
         };
