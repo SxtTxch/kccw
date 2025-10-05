@@ -501,17 +501,17 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       // Title
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('Wniosek o zaświadczenie wolontariatu', 20, 30);
+      doc.text(convertPolishToAscii('Wniosek o zaswiadczenie wolontariatu'), 20, 30);
       
       // Student information
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text('Dane ucznia:', 20, 50);
+      doc.text(convertPolishToAscii('Dane ucznia:'), 20, 50);
       
       const studentData = [
-        `Imię i nazwisko: ${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`,
+        `Imie i nazwisko: ${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`,
         `Data urodzenia: ${userProfile?.birthDate || ''}`,
-        `Szkoła: ${userProfile?.schoolName || ''}`,
+        `Szkola: ${userProfile?.schoolName || ''}`,
         `Email: ${userProfile?.email || ''}`,
         `Telefon: ${userProfile?.phone || 'Brak danych'}`
       ];
@@ -521,16 +521,16 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       });
       
       // Purpose
-      doc.text('Cel zaświadczenia:', 20, 120);
-      doc.text(convertPolishToAscii('Uczestnictwo w programie wolontariatu młodzieżowego'), 20, 130);
+      doc.text(convertPolishToAscii('Cel zaswiadczenia:'), 20, 120);
+      doc.text(convertPolishToAscii('Uczestnictwo w programie wolontariatu mlodziezowego'), 20, 130);
       
       // Required information
-      doc.text('Wymagane informacje:', 20, 150);
+      doc.text(convertPolishToAscii('Wymagane informacje:'), 20, 150);
       const requirements = [
-        'Potwierdzenie tożsamości i wieku',
+        'Potwierdzenie tozsamosci i wieku',
         'Zgoda na uczestnictwo w wolontariacie',
         'Dane kontaktowe koordynatora',
-        'Podpis i pieczęć szkoły'
+        'Podpis i pieczec szkoly'
       ];
       
       requirements.forEach((req, index) => {
@@ -538,9 +538,9 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       });
       
       // Date and signature
-      doc.text(`Data złożenia wniosku: ${new Date().toLocaleDateString('pl-PL')}`, 20, 200);
-      doc.text('Podpis ucznia: _________________', 20, 210);
-      doc.text('Podpis koordynatora: _________________', 20, 220);
+      doc.text(convertPolishToAscii(`Data zlozenia wniosku: ${new Date().toLocaleDateString('pl-PL')}`), 20, 200);
+      doc.text(convertPolishToAscii('Podpis ucznia: _________________'), 20, 210);
+      doc.text(convertPolishToAscii('Podpis koordynatora: _________________'), 20, 220);
       
       // Save the PDF
       const fileName = `wniosek_zaswiadczenie_${convertPolishToAscii(userProfile?.firstName || '')}_${convertPolishToAscii(userProfile?.lastName || '')}.pdf`;
