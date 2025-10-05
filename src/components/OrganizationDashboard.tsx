@@ -1055,7 +1055,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                   </div>
 
                   {newOfferData.hasBounty && (
-                    <div className="space-y-3 pl-8 border-l-2 border-green-300">
+                    <div className="space-y-3">
                       <div className="space-y-2">
                         <Label htmlFor="bountyAmount" className="text-green-800 font-medium">
                           Kwota nagrody (PLN) *
@@ -1072,9 +1072,9 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 font-bold">zł</span>
                         </div>
                       </div>
-                      <div className="bg-green-100 border border-green-200 rounded-lg p-3">
-                        <p className="text-sm text-green-800">
-                          <strong>Wskazówka:</strong> Nagroda zostanie wypłacona po ukończeniu oferty przez wolontariusza.
+                      <div className="bg-gray-100 rounded-lg p-3">
+                        <p className="text-sm text-gray-600">
+                          Nagroda zostanie wypłacona po ukończeniu oferty przez wolontariusza.
                         </p>
                       </div>
                     </div>
