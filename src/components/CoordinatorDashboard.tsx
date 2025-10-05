@@ -1666,31 +1666,13 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             </div>
                           </div>
                           
-                          {/* Student Engagement - based on students with any volunteer hours */}
+                          {/* Average Student Rating - based on students with ratings */}
                           <div className="flex justify-between items-center">
-                            <span className="text-sm">Zaangażowanie uczniów</span>
+                            <span className="text-sm">Średnia ocena uczniów</span>
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-2 bg-gray-200 rounded-full">
                                 <div 
                                   className="h-2 bg-orange-500 rounded-full transition-all duration-300"
-                                  style={{ 
-                                    width: `${stats.totalStudents > 0 ? (students.filter(s => (s.volunteerHours || 0) > 0).length / stats.totalStudents) * 100 : 0}%` 
-                                  }}
-                                ></div>
-                              </div>
-                              <span className="text-sm text-muted-foreground">
-                                {stats.totalStudents > 0 ? Math.round((students.filter(s => (s.volunteerHours || 0) > 0).length / stats.totalStudents) * 100) : 0}%
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {/* Average Rating */}
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm">Średnia ocena</span>
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 h-2 bg-gray-200 rounded-full">
-                                <div 
-                                  className="h-2 bg-yellow-500 rounded-full transition-all duration-300"
                                   style={{ 
                                     width: `${stats.averageRating > 0 ? (stats.averageRating / 5) * 100 : 0}%` 
                                   }}
