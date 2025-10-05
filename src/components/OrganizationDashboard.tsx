@@ -1889,11 +1889,11 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between max-w-sm mx-auto">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 flex items-center justify-center">
+            <div className="w-16 h-16 flex items-center justify-center">
               <img 
                 src={logoVertical} 
                 alt="Młody Kraków Logo" 
-                className="h-10 w-auto object-contain"
+                className="h-14 w-auto object-contain"
               />
             </div>
             <div>
