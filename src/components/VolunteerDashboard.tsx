@@ -520,25 +520,31 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
         doc.text(convertPolishToAscii(line), 20, 65 + (index * 8));
       });
       
-      // Purpose
-      doc.text(convertPolishToAscii('Cel zaswiadczenia:'), 20, 120);
-      doc.text(convertPolishToAscii('Uczestnictwo w programie wolontariatu mlodziezowego'), 20, 130);
+      // Project Information
+      doc.text(convertPolishToAscii('Informacje o projekcie:'), 20, 120);
+      doc.text(convertPolishToAscii(`Tytul projektu: ${userProfile?.currentProject || 'Wolontariat mlodziezowy'}`), 20, 130);
+      doc.text(convertPolishToAscii(`Opis: ${userProfile?.bio || 'Uczestnictwo w programie wolontariatu mlodziezowego'}`), 20, 140);
+      doc.text(convertPolishToAscii(`Liczba godzin: ${userProfile?.volunteerHours || 0}`), 20, 150);
+      doc.text(convertPolishToAscii(`Data rozpoczecia: ${userProfile?.volunteerStartDate ? new Date(userProfile.volunteerStartDate).toLocaleDateString('pl-PL') : new Date().toLocaleDateString('pl-PL')}`), 20, 160);
+      doc.text(convertPolishToAscii(`Data zakonczenia: ${userProfile?.volunteerEndDate ? new Date(userProfile.volunteerEndDate).toLocaleDateString('pl-PL') : new Date().toLocaleDateString('pl-PL')}`), 20, 170);
       
-      // Required information
-      doc.text(convertPolishToAscii('Wymagane informacje:'), 20, 150);
-      const requirements = [
-        'Potwierdzenie tozsamosci i wieku',
-        'Zgoda na uczestnictwo w wolontariacie',
-        'Dane kontaktowe koordynatora',
-        'Podpis i pieczec szkoly'
-      ];
+      // Achievements and Skills
+      if (userProfile?.achievements && userProfile.achievements.length > 0) {
+        doc.text(convertPolishToAscii('Osiagniecia:'), 20, 185);
+        userProfile.achievements.forEach((achievement, index) => {
+          doc.text(convertPolishToAscii(`• ${achievement}`), 20, 195 + (index * 8));
+        });
+      }
       
-      requirements.forEach((req, index) => {
-        doc.text(convertPolishToAscii(`• ${req}`), 20, 160 + (index * 8));
-      });
+      if (userProfile?.skills && userProfile.skills.length > 0) {
+        doc.text(convertPolishToAscii('Umiejetnosci:'), 20, 195 + (userProfile.achievements?.length || 0) * 8);
+        userProfile.skills.forEach((skill, index) => {
+          doc.text(convertPolishToAscii(`• ${skill}`), 20, 205 + (userProfile.achievements?.length || 0) * 8 + (index * 8));
+        });
+      }
       
       // Date
-      doc.text(convertPolishToAscii(`Data zlozenia wniosku: ${new Date().toLocaleDateString('pl-PL')}`), 20, 200);
+      doc.text(convertPolishToAscii(`Data zlozenia wniosku: ${new Date().toLocaleDateString('pl-PL')}`), 20, 220 + (userProfile?.achievements?.length || 0) * 8 + (userProfile?.skills?.length || 0) * 8);
       
       // Generate PDF as base64 string
       const pdfBase64 = doc.output('datauristring');
@@ -562,13 +568,13 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
           pdfData: pdfBase64,
           status: 'pending',
           submittedAt: serverTimestamp(),
-          projectTitle: 'Wniosek o zaświadczenie wolontariatu',
-          projectDescription: 'Uczestnictwo w programie wolontariatu młodzieżowego',
-          volunteerHours: 0,
-          startDate: new Date().toISOString(),
-          endDate: new Date().toISOString(),
-          achievements: 'Zgłoszenie zaświadczenia',
-          skills: ['Wolontariat młodzieżowy']
+          projectTitle: userProfile?.currentProject || 'Wolontariat młodzieżowy',
+          projectDescription: userProfile?.bio || 'Uczestnictwo w programie wolontariatu młodzieżowego',
+          volunteerHours: userProfile?.volunteerHours || 0,
+          startDate: userProfile?.volunteerStartDate || new Date().toISOString(),
+          endDate: userProfile?.volunteerEndDate || new Date().toISOString(),
+          achievements: userProfile?.achievements?.join(', ') || 'Zgłoszenie zaświadczenia',
+          skills: userProfile?.skills || ['Wolontariat młodzieżowy']
         };
         
         await addDoc(collection(db, 'certificateApplications'), certificateApplication);
