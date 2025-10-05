@@ -1200,7 +1200,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 <Button
                   onClick={submitOffer}
                   className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90"
-                  disabled={!newOfferData.title || !newOfferData.category || !newOfferData.description || !newOfferData.startDate || (newOfferData.hasBounty && !newOfferData.bountyAmount)}
+                  disabled={!newOfferData.title || !newOfferData.category || !newOfferData.description || !newOfferData.startDate || !newOfferData.maxParticipants || parseInt(newOfferData.maxParticipants) <= 0 || (newOfferData.hasBounty && !newOfferData.bountyAmount)}
                 >
                   Utwórz ofertę
                 </Button>

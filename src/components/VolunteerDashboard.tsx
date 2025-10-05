@@ -1256,9 +1256,9 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                   handleApplyToOffer(offer.id);
                 }}
                 className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:opacity-90"
-                disabled={offer.currentParticipants >= offer.maxParticipants}
+                disabled={offer.currentParticipants >= offer.maxParticipants || offer.maxParticipants === 0}
               >
-                Zgłoś się
+                {offer.maxParticipants === 0 ? 'Brak miejsc' : 'Zgłoś się'}
               </Button>
             );
           })()}
