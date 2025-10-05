@@ -540,6 +540,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       case 'in-progress': return 'bg-yellow-100 text-yellow-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'active': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -551,6 +552,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       case 'in-progress': return 'W trakcie';
       case 'completed': return 'Zakończona';
       case 'cancelled': return 'Anulowana';
+      case 'active': return 'Aktywny';
       default: return status;
     }
   };
@@ -739,8 +741,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       location: offer.location,
       startDate: offer.startDate,
       endDate: offer.endDate,
-      duration: offer.duration,
-      maxVolunteers: offer.maxVolunteers.toString(),
+      duration: (offer as any).duration || '',
+      maxVolunteers: offer.maxParticipants.toString(),
       contactEmail: user.email,
       contactPhone: ""
     });
