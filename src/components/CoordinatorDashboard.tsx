@@ -744,7 +744,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   // Certificate application management
   const handleCertificateApproval = async (applicationId: string, approved: boolean, rejectionReason?: string) => {
     try {
-      const { doc, updateDoc, serverTimestamp, getDoc } = await import('firebase/firestore');
+      const { doc, updateDoc, serverTimestamp, getDoc, collection, getDocs, query, where } = await import('firebase/firestore');
       const { db } = await import('../firebase/config');
       
       // Get the application to find the student ID
@@ -1464,14 +1464,10 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                         </Badge>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {application.volunteerHours} godzin
-                        </div>
+                      <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(application.startDate).toLocaleDateString('pl-PL')} - {new Date(application.endDate).toLocaleDateString('pl-PL')}
+                          Złożono: {application.submittedAt ? new Date(application.submittedAt.seconds * 1000).toLocaleDateString('pl-PL') : 'Nieznana data'}
                         </div>
                       </div>
                     </CardHeader>
@@ -1862,14 +1858,10 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                                 </Badge>
                               </div>
                               
-                              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {application.volunteerHours} godzin
-                                </div>
+                              <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {new Date(application.startDate).toLocaleDateString('pl-PL')} - {new Date(application.endDate).toLocaleDateString('pl-PL')}
+                                  Złożono: {application.submittedAt ? new Date(application.submittedAt.seconds * 1000).toLocaleDateString('pl-PL') : 'Nieznana data'}
                                 </div>
                               </div>
                             </CardHeader>
