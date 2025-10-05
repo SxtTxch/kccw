@@ -393,7 +393,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [loadingApplications, setLoadingApplications] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loadingCalendarEvents, setLoadingCalendarEvents] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [offerToDelete, setOfferToDelete] = useState<Offer | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(false);
   const [reviews] = useState<Review[]>(mockReviews);
@@ -792,29 +791,21 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
     }
   };
 
-  const handleDeleteOffer = (offer: Offer) => {
-    setOfferToDelete(offer);
-    setDeleteConfirmation(false);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDeleteOffer = async () => {
-    if (!offerToDelete) return;
-
-    if (!deleteConfirmation) {
+  const handleDeleteOffer = async (offer: Offer) => {
+    if (!deleteConfirmation || offerToDelete?.id !== offer.id) {
       // First click - show "Na pewno?" confirmation
+      setOfferToDelete(offer);
       setDeleteConfirmation(true);
       return;
     }
 
     // Second click - actually delete
     try {
-      const success = await deleteOffer(offerToDelete.id.toString());
+      const success = await deleteOffer(offer.id.toString());
       if (success) {
         // Refresh offers list
         const organizationOffers = await getOffersByOrganization(user.id.toString());
         setOffers(organizationOffers);
-        setShowDeleteModal(false);
         setOfferToDelete(null);
         setDeleteConfirmation(false);
       }
@@ -824,7 +815,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   };
 
   const cancelDeleteOffer = () => {
-    setShowDeleteModal(false);
     setOfferToDelete(null);
     setDeleteConfirmation(false);
   };
@@ -1999,15 +1989,38 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                         <Users className="h-3 w-3 mr-1" />
                         Zgłosz.
                       </Button>
-                      <Button 
-                        onClick={() => handleDeleteOffer(offer)}
-                        variant="outline" 
-                        size="sm" 
-                        className="px-1 py-1 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Usuń
-                      </Button>
+                      {deleteConfirmation && offerToDelete?.id === offer.id ? (
+                        <div className="flex gap-1">
+                          <Button 
+                            onClick={() => handleDeleteOffer(offer)}
+                            variant="outline" 
+                            size="sm" 
+                            className="px-1 py-1 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Na pewno?
+                          </Button>
+                          <Button 
+                            onClick={cancelDeleteOffer}
+                            variant="outline" 
+                            size="sm" 
+                            className="px-1 py-1 h-7 text-xs text-gray-600 border-gray-200 hover:bg-gray-50"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Anuluj
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button 
+                          onClick={() => handleDeleteOffer(offer)}
+                          variant="outline" 
+                          size="sm" 
+                          className="px-1 py-1 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Usuń
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -2937,46 +2950,6 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       </div>
       
       <Chat userType={user.userType as "wolontariusz" | "koordynator" | "organizacja"} />
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && offerToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-sm p-6 shadow-lg">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Usuń ofertę</h3>
-              <p className="text-sm text-gray-600 mb-4">Ta akcja jest nieodwracalna</p>
-            </div>
-            
-            <div className="mb-6">
-              <p className="text-sm text-gray-700 mb-2">Czy na pewno chcesz usunąć ofertę:</p>
-              <p className="font-medium text-gray-900 text-center p-3 bg-gray-50 rounded-md">{offerToDelete.title}</p>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Wszystkie zgłoszenia do tej oferty również zostaną usunięte.
-              </p>
-            </div>
-            
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={confirmDeleteOffer}
-                className="w-full bg-red-600 hover:bg-red-700 text-white !h-12 !py-0"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {deleteConfirmation ? "Na pewno?" : "Usuń ofertę"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={cancelDeleteOffer}
-                className="w-full !h-12 !py-0"
-              >
-                Anuluj
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
