@@ -6,6 +6,7 @@ import { Label } from "./components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
 import { Heart, GraduationCap, Building2, ChevronRight } from "lucide-react";
+import logoVertical from "./assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 import { VolunteerDashboard } from "./components/VolunteerDashboard";
 import { CoordinatorDashboard } from "./components/CoordinatorDashboard";
 import { OrganizationDashboard } from "./components/OrganizationDashboard";
@@ -391,8 +392,12 @@ function AppContent() {
           <div className={`max-w-sm mx-auto py-4 ${highContrast ? 'text-white' : ''}`}>
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="h-8 w-8 text-white" />
+              <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                <img 
+                  src={logoVertical} 
+                  alt="Młody Kraków Logo" 
+                  className="h-16 w-auto object-contain"
+                />
               </div>
               <h1 className="mb-2">Witamy</h1>
               <p className="text-muted-foreground">Wybierz typ konta, aby kontynuować</p>

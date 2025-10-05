@@ -4,7 +4,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Calendar, MapPin, Users, Clock, AlertCircle, CheckCircle, XCircle, Heart, Star, Camera, Plus, Upload, X, Trash2 } from 'lucide-react';
-import { getUserOffers, deleteUserApplication, cancelOfferSignup } from '../firebase/firestore';
+import { getUserOffers, deleteUserApplication, cancelOfferSignup, getOfferById } from '../firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Application {
@@ -103,6 +103,7 @@ const MyApplications = ({ onApplicationChange, onNavigateToOffers }: MyApplicati
   const [selectedActionForPhotos, setSelectedActionForPhotos] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [applicationToDelete, setApplicationToDelete] = useState<string | null>(null);
+  const [offerDetails, setOfferDetails] = useState<{[key: string]: any}>({});
 
   // Helper functions for photo management
   const handlePhotoUpload = (actionId: number, files: FileList | null) => {
@@ -144,12 +145,16 @@ const MyApplications = ({ onApplicationChange, onNavigateToOffers }: MyApplicati
         console.log('Application not found');
         return;
       }
+      
+      console.log('Found application:', application);
+      console.log('Offer ID:', application.offerId);
 
       // Cancel the offer signup (remove from offer's participants)
+      // This might fail if the user was never actually added to the offer's participants
+      // We'll continue with the deletion even if this fails
       const cancelSuccess = await cancelOfferSignup(application.offerId, userProfile.id);
       if (!cancelSuccess) {
-        console.log('Failed to cancel offer signup');
-        return;
+        console.log('Failed to cancel offer signup - user may not have been in offer participants, continuing with application deletion');
       }
 
       // Remove from user's applications
@@ -176,6 +181,9 @@ const MyApplications = ({ onApplicationChange, onNavigateToOffers }: MyApplicati
   };
 
   const handleDeleteClick = (applicationId: string) => {
+    console.log('Delete button clicked for application:', applicationId);
+    console.log('Current applications:', applications);
+    console.log('User profile ID:', userProfile?.id);
     setApplicationToDelete(applicationId);
     setShowDeleteConfirm(true);
   };
@@ -187,13 +195,32 @@ const MyApplications = ({ onApplicationChange, onNavigateToOffers }: MyApplicati
 
   useEffect(() => {
     const fetchApplications = async () => {
-      if (!userProfile?.id) return;
+      console.log('Fetching applications for user:', userProfile?.id);
+      if (!userProfile?.id) {
+        console.log('No user profile ID available');
+        return;
+      }
       
       try {
         setLoading(true);
         const userApplications = await getUserOffers(userProfile.id);
         console.log('Fetched applications:', userApplications);
+        console.log('Number of applications:', userApplications.length);
         setApplications(userApplications);
+        
+        // Fetch offer details for each application
+        const offerDetailsMap: {[key: string]: any} = {};
+        for (const app of userApplications) {
+          try {
+            const offer = await getOfferById(app.offerId);
+            if (offer) {
+              offerDetailsMap[app.offerId] = offer;
+            }
+          } catch (error) {
+            console.error(`Error fetching offer ${app.offerId}:`, error);
+          }
+        }
+        setOfferDetails(offerDetailsMap);
       } catch (error) {
         console.error('Error fetching applications:', error);
       } finally {
@@ -298,7 +325,12 @@ const MyApplications = ({ onApplicationChange, onNavigateToOffers }: MyApplicati
                           </div>
                           <div className="flex items-center gap-2 text-sm text-gray-500">
                             <Calendar className="w-4 h-4" />
-                            <span>Zgłoszono: {formatDate(application.appliedAt)}</span>
+                            <span>
+                              {offerDetails[application.offerId]?.startDate 
+                                ? `Data wydarzenia: ${new Date(offerDetails[application.offerId].startDate).toLocaleDateString('pl-PL')}`
+                                : `Zgłoszono: ${formatDate(application.appliedAt)}`
+                              }
+                            </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">

@@ -1094,8 +1094,8 @@ export const cancelOfferSignup = async (offerId: string, firestoreUserId: string
     
     // Check if user is signed up
     if (!offerData.participants.includes(firestoreUserId)) {
-      console.log('User is not signed up for this offer');
-      return false;
+      console.log('User is not signed up for this offer - this is okay, they may have only applied but not been added to participants');
+      return true; // Return true to indicate "success" since there's nothing to cancel
     }
     
     // Remove user from participants
@@ -1429,6 +1429,28 @@ export const getStudentsBySchool = async (schoolName: string) => {
     return students;
   } catch (error) {
     console.error('Error fetching students by school:', error);
+    return [];
+  }
+};
+
+// Get all users from Firestore
+export const getAllUsers = async (): Promise<UserProfile[]> => {
+  try {
+    const usersRef = collection(db, 'users');
+    const usersSnap = await getDocs(usersRef);
+    
+    const users: UserProfile[] = [];
+    usersSnap.forEach((doc) => {
+      const userData = doc.data() as UserProfile;
+      users.push({
+        ...userData,
+        id: doc.id
+      });
+    });
+    
+    return users;
+  } catch (error) {
+    console.error('Error fetching all users:', error);
     return [];
   }
 };

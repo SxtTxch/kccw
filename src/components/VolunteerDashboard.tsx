@@ -49,10 +49,11 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import MyApplications from "./MyApplications";
-import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge } from "../firebase/firestore";
+import { getAllOffers, signUpForOffer, cancelOfferSignup, getVolunteerRatings, updateBadgeProgress, checkAndAwardBadge, getUserOffers, getOfferById } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import { useChat } from "../contexts/ChatContext";
 import { RatingComments } from "./RatingComments";
+import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 import { RatingForm } from "./RatingForm";
 import { StarRating } from "./StarRating";
 // import { addDummyCommentsToUser } from "../scripts/addDummyComments";
@@ -458,6 +459,8 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
   const [completedActions, setCompletedActions] = useState(mockCompletedActions);
   const [selectedActionForPhotos, setSelectedActionForPhotos] = useState(null);
   const [calendarEvents] = useState(mockCalendarEvents);
+  const [applications, setApplications] = useState([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
   const [volunteerStats, setVolunteerStats] = useState({
     totalHours: 0,
     totalProjects: 0,
@@ -756,6 +759,13 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     fetchOffers();
   }, []);
 
+  // Fetch applications when calendar tab is active
+  useEffect(() => {
+    if (activeTab === 'calendar') {
+      fetchApplications();
+    }
+  }, [activeTab, userProfile?.id]);
+
   // Fetch ratings for the volunteer
   useEffect(() => {
     const fetchRatings = async () => {
@@ -896,13 +906,141 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
 
   // Get events for selected date
   const getEventsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return calendarEvents.filter(event => event.date === dateStr);
+    // Use local date to match our application events
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    console.log(`getEventsForDate: Input date: ${date.toDateString()}, Looking for: ${dateStr}`);
+    
+    const matchingEvents = getAllEvents().filter(event => {
+      console.log(`Comparing: ${event.date} === ${dateStr}? ${event.date === dateStr}`);
+      return event.date === dateStr;
+    });
+    
+    console.log(`Found ${matchingEvents.length} events for ${dateStr}:`, matchingEvents);
+    return matchingEvents;
   };
 
   // Get dates that have events
   const getEventDates = () => {
-    return calendarEvents.map(event => new Date(event.date));
+    return getAllEvents().map(event => {
+      // Parse the YYYY-MM-DD format back to a Date object
+      const [year, month, day] = event.date.split('-').map(Number);
+      return new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+    });
+  };
+
+  // Fetch applications and convert to calendar events
+  const fetchApplications = async () => {
+    if (!userProfile?.id) return;
+    
+    try {
+      setLoadingApplications(true);
+      const userApplications = await getUserOffers(userProfile.id);
+      console.log('Fetched applications for calendar:', userApplications);
+      
+      // Fetch offer details for each application to get start dates
+      const applicationsWithOfferDetails = await Promise.all(
+        userApplications.map(async (app: any) => {
+          try {
+            const offer = await getOfferById(app.offerId);
+            if (offer) {
+              return {
+                ...app,
+                offerStartDate: offer.startDate
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching offer ${app.offerId}:`, error);
+          }
+          return app;
+        })
+      );
+      
+      setApplications(applicationsWithOfferDetails);
+    } catch (error) {
+      console.error('Error fetching applications for calendar:', error);
+    } finally {
+      setLoadingApplications(false);
+    }
+  };
+
+  // Convert applications to calendar events
+  const getApplicationEvents = () => {
+    return applications.map((app: any, index: number) => {
+      let eventDate = new Date().toISOString().split('T')[0]; // Default to today
+      let eventTime = '00:00';
+      
+      // Try to get the offer's start date from the applications data
+      // If not available, fall back to application date
+      if (app.offerStartDate) {
+        // Use offer's start date if available
+        const dateObj = new Date(app.offerStartDate);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        eventDate = `${year}-${month}-${day}`;
+        eventTime = '09:00'; // Default time for events
+        console.log(`Application ${app.id}: Using offer start date: ${app.offerStartDate}, Converted date: ${eventDate}`);
+      } else if (app.appliedAt) {
+        // Fallback to application date
+        let dateObj;
+        if (app.appliedAt.toDate) {
+          // Firebase timestamp
+          dateObj = app.appliedAt.toDate();
+        } else {
+          // Regular date
+          dateObj = new Date(app.appliedAt);
+        }
+        
+        // Use local date to avoid timezone issues
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        eventDate = `${year}-${month}-${day}`;
+        
+        eventTime = dateObj.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+        
+        console.log(`Application ${app.id}: Using application date: ${app.appliedAt}, Converted date: ${eventDate}, Date object: ${dateObj.toDateString()}`);
+      }
+      
+      return {
+        id: `app-${app.id}`,
+        title: app.offerTitle,
+        date: eventDate,
+        time: eventTime,
+        organization: app.organizationName,
+        location: 'Lokalizacja do ustalenia',
+        type: 'volunteer' as const,
+        status: app.status === 'accepted' ? 'confirmed' as const : app.status === 'rejected' ? 'completed' as const : 'pending' as const,
+        category: null,
+        author: app.organizationName,
+        applicationData: app,
+        color: getRandomColor(index)
+      };
+    });
+  };
+
+  // Generate random colors for events
+  const getRandomColor = (index: number) => {
+    const colors = [
+      'bg-blue-100 text-blue-800 border-blue-200',
+      'bg-green-100 text-green-800 border-green-200',
+      'bg-purple-100 text-purple-800 border-purple-200',
+      'bg-orange-100 text-orange-800 border-orange-200',
+      'bg-pink-100 text-pink-800 border-pink-200',
+      'bg-indigo-100 text-indigo-800 border-indigo-200',
+      'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'bg-red-100 text-red-800 border-red-200'
+    ];
+    return colors[index % colors.length];
+  };
+
+  // Get all events (mock + applications)
+  const getAllEvents = () => {
+    return [...calendarEvents, ...getApplicationEvents()];
   };
 
   // Get upcoming events (next 7 days)
@@ -910,13 +1048,14 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
     const today = new Date();
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
     
-    return calendarEvents
+    return getAllEvents()
       .filter(event => {
         const eventDate = new Date(event.date);
         return eventDate >= today && eventDate <= nextWeek;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
+
 
   const handleApplyToOffer = async (offerId: string) => {
     try {
@@ -1101,8 +1240,12 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between max-w-sm mx-auto">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full flex items-center justify-center">
-              <Heart className="h-5 w-5 text-white" />
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img 
+                src={logoVertical} 
+                alt="Młody Kraków Logo" 
+                className="h-10 w-auto object-contain"
+              />
             </div>
             <div>
               <h1 className="text-lg">Cześć, {user.firstName}!</h1>
@@ -1124,9 +1267,9 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             >
               <MessageCircle className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onLogout}>
-              <LogOut className="h-5 w-5" />
-            </Button>
+          <Button variant="ghost" size="icon" onClick={onLogout}>
+            <LogOut className="h-5 w-5" />
+          </Button>
           </div>
         </div>
       </div>
@@ -1229,13 +1372,21 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                 {getUpcomingEvents().length > 0 ? (
                   <div className="space-y-3">
                     {getUpcomingEvents().map(event => (
-                      <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div 
+                        key={event.id} 
+                        className={`flex items-center justify-between p-3 rounded-lg ${event.color || 'bg-gray-50'}`}
+                      >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm">{event.title}</h4>
+                            <h4 className="text-sm font-medium">{event.title}</h4>
                             <Badge className={`${getEventTypeColor(event.type)} border text-xs`}>
                               {getEventTypeLabel(event.type)}
                             </Badge>
+                            {event.category && (
+                              <Badge variant="outline" className="text-xs">
+                                {event.category}
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground">{event.organization}</p>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
@@ -1251,11 +1402,19 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                               <MapPin className="h-3 w-3" />
                               {event.location}
                             </span>
+                            {event.author && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {event.author}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <Badge className={`${getStatusColor(event.status)} text-xs`}>
-                          {getStatusLabel(event.status)}
-                        </Badge>
+                        {event.applicationData && (
+                          <Badge className={`${getStatusColor(event.status)} text-xs`}>
+                            {getStatusLabel(event.status)}
+                          </Badge>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1272,14 +1431,19 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Kalendarz</CardTitle>
-                <CardDescription>Kliknij datę, aby zobaczyć szczegóły wydarzeń</CardDescription>
+                <CardDescription>Kliknij na podświetlone daty, aby zobaczyć szczegóły wydarzeń</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-center">
                   <CalendarComponent
                     mode="single"
                     selected={selectedDate}
-                    onSelect={setSelectedDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedDate(date);
+                        // No popup - events will be shown in the "Wydarzenia" section below
+                      }
+                    }}
                     className="rounded-md border"
                     modifiers={{
                       hasEvents: getEventDates()
@@ -1288,7 +1452,8 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                       hasEvents: {
                         backgroundColor: 'rgba(236, 72, 153, 0.1)',
                         color: '#ec4899',
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
                       }
                     }}
                   />
@@ -1307,30 +1472,77 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                 <CardContent>
                   <div className="space-y-3">
                     {getEventsForDate(selectedDate).map(event => (
-                      <div key={event.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="mb-1">{event.title}</h4>
-                          <div className="flex gap-2">
-                            <Badge className={`${getEventTypeColor(event.type)} border text-xs`}>
-                              {getEventTypeLabel(event.type)}
-                            </Badge>
-                            <Badge className={`${getStatusColor(event.status)} text-xs`}>
-                              {getStatusLabel(event.status)}
-                            </Badge>
+                      <div 
+                        key={event.id} 
+                        className={`border rounded-lg p-4 ${event.color || 'border-gray-200'}`}
+                      >
+                        <div className="flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
+                            <h4 className="text-lg font-medium text-gray-900">{event.title}</h4>
+                            <div className="flex flex-wrap gap-2">
+                              <Badge className={`${getEventTypeColor(event.type)} border text-xs`}>
+                                {getEventTypeLabel(event.type)}
+                              </Badge>
+                              {event.applicationData && (
+                                <Badge className={`${getStatusColor(event.status)} text-xs`}>
+                                  {getStatusLabel(event.status)}
+                                </Badge>
+                              )}
+                              {event.category && (
+                                <Badge variant="outline" className="text-xs whitespace-nowrap">
+                                  {event.category}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mb-3">{event.organization}</p>
-                        
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{event.time}</span>
+                          
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">Organizacja:</span>
+                              <span className="text-muted-foreground">{event.organization}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-sm">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">Godzina:</span>
+                              <span className="text-muted-foreground">{event.time}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-sm">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">Lokalizacja:</span>
+                              <span className="text-muted-foreground">{event.location}</span>
+                            </div>
+                            
+                            {event.author && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">Autor:</span>
+                                <span className="text-muted-foreground">{event.author}</span>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span>{event.location}</span>
-                          </div>
+                          
+                          {event.applicationData && (
+                            <div className="border-t pt-3 mt-3">
+                              <h5 className="font-medium mb-2 text-sm">Szczegóły zgłoszenia:</h5>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <p>Status: {getStatusLabel(event.status)}</p>
+                                <p>Zgłoszono: {event.applicationData.appliedAt ? 
+                                  (event.applicationData.appliedAt.toDate ? 
+                                    event.applicationData.appliedAt.toDate().toLocaleDateString('pl-PL') : 
+                                    new Date(event.applicationData.appliedAt).toLocaleDateString('pl-PL')
+                                  ) : 'Nieznana data'
+                                }</p>
+                                {event.applicationData.rejectionMessage && (
+                                  <p className="text-red-600">
+                                    Powód odrzucenia: {event.applicationData.rejectionMessage}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex gap-2 mt-4">
@@ -1367,18 +1579,31 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                 <CardDescription>Pełna lista twoich zaplanowanych aktywności</CardDescription>
               </CardHeader>
               <CardContent>
-                {calendarEvents.length > 0 ? (
+                {loadingApplications ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Ładowanie wydarzeń...</p>
+                  </div>
+                ) : getAllEvents().length > 0 ? (
                   <div className="space-y-3">
-                    {calendarEvents
+                    {getAllEvents()
                       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                       .map(event => (
-                        <div key={event.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                        <div 
+                          key={event.id} 
+                          className={`flex items-center justify-between p-3 border rounded-lg ${event.color || 'border-gray-200'}`}
+                        >
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="text-sm">{event.title}</h4>
+                              <h4 className="text-sm font-medium">{event.title}</h4>
                               <Badge className={`${getEventTypeColor(event.type)} border text-xs`}>
                                 {getEventTypeLabel(event.type)}
                               </Badge>
+                              {event.category && (
+                                <Badge variant="outline" className="text-xs">
+                                  {event.category}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground mb-1">{event.organization}</p>
                             <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -1390,11 +1615,19 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                                 <Clock className="h-3 w-3" />
                                 {event.time}
                               </span>
+                              {event.author && (
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {event.author}
+                                </span>
+                              )}
                             </div>
                           </div>
-                          <Badge className={`${getStatusColor(event.status)} text-xs`}>
-                            {getStatusLabel(event.status)}
-                          </Badge>
+                          {event.applicationData && (
+                            <Badge className={`${getStatusColor(event.status)} text-xs`}>
+                              {getStatusLabel(event.status)}
+                            </Badge>
+                          )}
                         </div>
                       ))}
                   </div>
@@ -1406,6 +1639,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
                 )}
               </CardContent>
             </Card>
+
           </TabsContent>
 
           <TabsContent value="map" className="space-y-4">

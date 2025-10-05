@@ -47,8 +47,9 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { StudentProfile } from "./StudentProfile";
-import { getStudentsBySchool } from "../firebase/firestore";
+import { getStudentsBySchool, getAllUsers, getAllOffers } from "../firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
+import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 import { useChat } from "../contexts/ChatContext";
 
 interface User {
@@ -226,44 +227,6 @@ const mockStudents: Student[] = [
   }
 ];
 
-const mockOrganizations: Organization[] = [
-  {
-    id: 1,
-    name: "Fundacja Przyjaciół Zwierząt",
-    type: "Fundacja",
-    contactPerson: "Dr Anna Kowal",
-    email: "kontakt@fundacjazwierzat.pl",
-    phone: "+48 22 123 45 67",
-    activeProjects: 3,
-    rating: 4.8,
-    lastContact: "2024-10-02",
-    status: 'active'
-  },
-  {
-    id: 2,
-    name: "Caritas Warszawa",
-    type: "Organizacja religijna",
-    contactPerson: "Ks. Jan Kowalski",
-    email: "wolontariat@caritas.warszawa.pl",
-    phone: "+48 22 234 56 78",
-    activeProjects: 5,
-    rating: 4.9,
-    lastContact: "2024-10-01",
-    status: 'active'
-  },
-  {
-    id: 3,
-    name: "Hospicjum św. Łazarza",
-    type: "Instytucja medyczna",
-    contactPerson: "Mgr Katarzyna Nowak",
-    email: "wolontariat@hospicjum.pl",
-    phone: "+48 22 345 67 89",
-    activeProjects: 1,
-    rating: 4.7,
-    lastContact: "2024-09-25",
-    status: 'pending'
-  }
-];
 
 const mockProjects: Project[] = [
   {
@@ -399,7 +362,12 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [students, setStudents] = useState<any[]>([]);
-  const [organizations] = useState<Organization[]>(mockOrganizations);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loadingOrganizations, setLoadingOrganizations] = useState(false);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
+  const [showOfferModal, setShowOfferModal] = useState(false);
   const [projects] = useState<Project[]>(mockProjects);
   const [certificates] = useState<Certificate[]>(mockCertificates);
   const [calendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
@@ -443,6 +411,62 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
     fetchStudents();
   }, [userProfile?.schoolName]);
 
+  // Fetch organizations from Firebase
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        setLoadingOrganizations(true);
+        const allUsers = await getAllUsers();
+        
+        // Filter for organization users
+        const organizationUsers = allUsers.filter(user => user.userType === 'organizacja');
+        
+        // Convert to Organization interface format
+        const organizationsData: Organization[] = organizationUsers.map((user, index) => ({
+          id: parseInt(user.id || '0') || index + 1,
+          name: user.organizationName || user.firstName + ' ' + user.lastName,
+          type: user.organizationType || 'Organizacja',
+          contactPerson: user.organizationName || user.firstName + ' ' + user.lastName,
+          email: user.email,
+          phone: user.phoneNumber || 'Brak numeru',
+          activeProjects: user.totalProjects || 0,
+          rating: 4.5, // Default rating since we don't have this in user profile
+          lastContact: user.lastLoginAt ? 
+            (user.lastLoginAt.toDate ? user.lastLoginAt.toDate().toISOString().split('T')[0] : new Date(user.lastLoginAt).toISOString().split('T')[0]) : 
+            new Date().toISOString().split('T')[0],
+          status: user.isActive ? 'active' : 'inactive'
+        }));
+        
+        console.log('Fetched organizations:', organizationsData);
+        setOrganizations(organizationsData);
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+      } finally {
+        setLoadingOrganizations(false);
+      }
+    };
+
+    fetchOrganizations();
+  }, []);
+
+  // Fetch offers from Firebase
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        setLoadingOffers(true);
+        const offersData = await getAllOffers();
+        console.log('Fetched offers for calendar:', offersData);
+        setOffers(offersData);
+      } catch (error) {
+        console.error('Error fetching offers:', error);
+      } finally {
+        setLoadingOffers(false);
+      }
+    };
+
+    fetchOffers();
+  }, []);
+
   // Helper functions
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -453,11 +477,43 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
     return num.toString();
   };
 
+  // Get dates that have offers
+  const getOfferDates = () => {
+    return offers.map(offer => new Date(offer.startDate));
+  };
+
+  // Get offers for a specific date
+  const getOffersForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return offers.filter(offer => {
+      const offerDate = new Date(offer.startDate).toISOString().split('T')[0];
+      return offerDate === dateStr;
+    });
+  };
+
+  // Handle calendar date click
+  const handleCalendarDateClick = (date: Date) => {
+    const offersForDate = getOffersForDate(date);
+    if (offersForDate.length > 0) {
+      setSelectedOffer(offersForDate[0]);
+      setShowOfferModal(true);
+    }
+  };
+
   const getStudentStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 border-green-200';
       case 'inactive': return 'bg-red-100 text-red-800 border-red-200';
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case 'high': return 'bg-red-100 text-red-800 border-red-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -586,8 +642,12 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between max-w-sm mx-auto">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-              <GraduationCap className="h-5 w-5 text-white" />
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img 
+                src={logoVertical} 
+                alt="Młody Kraków Logo" 
+                className="h-10 w-auto object-contain"
+              />
             </div>
             <div>
               <h1 className="text-lg">Cześć, {user.firstName}!</h1>
@@ -812,7 +872,14 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
             </Card>
 
             {/* Organizations List */}
-            {filteredOrganizations.length > 0 ? (
+            {loadingOrganizations ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Ładowanie organizacji...</p>
+                </CardContent>
+              </Card>
+            ) : filteredOrganizations.length > 0 ? (
               filteredOrganizations.map(org => (
                 <Card key={org.id} className="border-l-4 border-l-green-500">
                   <CardHeader className="pb-3">
@@ -836,9 +903,9 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                   <CardContent className="pt-0">
                     <div className="mb-3">
                       <div className="text-sm mb-2">
-                        <span className="text-muted-foreground">Osoba kontaktowa:</span>
+                        <span className="text-muted-foreground">Instytucja:</span>
                         <br />
-                        <span>{org.contactPerson}</span>
+                        <span>{org.name}</span>
                       </div>
                       
                       <div className="flex items-center gap-2 text-sm mb-1">
@@ -897,8 +964,8 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
           {/* Calendar Tab */}
           <TabsContent value="calendar" className="space-y-4">
             <div className="text-center mb-6">
-              <h2 className="mb-2">Kalendarz wydarzeń</h2>
-              <p className="text-sm text-muted-foreground">Terminy i spotkania</p>
+              <h2 className="mb-2">Kalendarz ofert</h2>
+              <p className="text-sm text-muted-foreground">Kliknij na podświetlone daty, aby zobaczyć oferty</p>
             </div>
 
             {/* Upcoming Events */}
@@ -955,18 +1022,88 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Kalendarz</CardTitle>
+                <CardDescription>Kliknij na podświetlone daty, aby zobaczyć oferty</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-center">
                   <CalendarComponent
                     mode="single"
                     selected={selectedDate}
-                    onSelect={setSelectedDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedDate(date);
+                        handleCalendarDateClick(date);
+                      }
+                    }}
                     className="rounded-md border"
+                    modifiers={{
+                      hasOffers: getOfferDates()
+                    }}
+                    modifiersStyles={{
+                      hasOffers: {
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        color: '#22c55e',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }
+                    }}
                   />
                 </div>
               </CardContent>
             </Card>
+
+            {/* Selected Date Offers */}
+            {selectedDate && getOffersForDate(selectedDate).length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">
+                    Oferty na {selectedDate.toLocaleDateString('pl-PL')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {getOffersForDate(selectedDate).map(offer => (
+                      <div 
+                        key={offer.id} 
+                        className="border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => {
+                          setSelectedOffer(offer);
+                          setShowOfferModal(true);
+                        }}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-lg font-medium">{offer.title}</h4>
+                          <Badge className={`${getUrgencyColor(offer.urgency)} border text-xs`}>
+                            {offer.urgency === 'high' ? 'Pilne' : offer.urgency === 'medium' ? 'Średnie' : 'Niskie'}
+                          </Badge>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-3">{offer.organization}</p>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span>{new Date(offer.startDate).toLocaleDateString('pl-PL')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span>{offer.location}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>{offer.currentParticipants}/{offer.maxParticipants}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span>{offer.category}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Certificates Tab */}
@@ -1430,6 +1567,97 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
       </div>
       
       <Chat userType={user.userType as "wolontariusz" | "koordynator" | "organizacja"} />
+
+      {/* Offer Modal */}
+      {showOfferModal && selectedOffer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-semibold">{selectedOffer.title}</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowOfferModal(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <XIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Badge className={`${getUrgencyColor(selectedOffer.urgency)} border`}>
+                    {selectedOffer.urgency === 'high' ? 'Pilne' : selectedOffer.urgency === 'medium' ? 'Średnie' : 'Niskie'}
+                  </Badge>
+                  <Badge variant="outline">
+                    {selectedOffer.category}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Organizacja:</span>
+                    <span>{selectedOffer.organization}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Data:</span>
+                    <span>{new Date(selectedOffer.startDate).toLocaleDateString('pl-PL')}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Lokalizacja:</span>
+                    <span>{selectedOffer.location}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Uczestnicy:</span>
+                    <span>{selectedOffer.currentParticipants}/{selectedOffer.maxParticipants}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Opis:</h4>
+                  <p className="text-sm text-muted-foreground">{selectedOffer.description}</p>
+                </div>
+                
+                {selectedOffer.requirements && selectedOffer.requirements.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Wymagania:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {selectedOffer.requirements.map((req: string, index: number) => (
+                        <li key={index}>{req}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {selectedOffer.benefits && selectedOffer.benefits.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Korzyści:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {selectedOffer.benefits.map((benefit: string, index: number) => (
+                        <li key={index}>{benefit}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Kontakt:</span>
+                  <span>{selectedOffer.contactEmail}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

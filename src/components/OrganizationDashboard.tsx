@@ -68,6 +68,7 @@ import { PrivacySettings } from "./PrivacySettings";
 import { ChatButton, Chat } from "./Chat";
 import { EditProfile } from "./EditProfile";
 import { useChat } from "../contexts/ChatContext";
+import logoVertical from "../assets/images/logos/Mlody_Krakow_LOGO_cmyk_pion.png";
 
 interface User {
   id: number;
@@ -470,6 +471,13 @@ const mockOrganizationMembers: OrganizationMember[] = [
 
 export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardProps) {
   const { openChat } = useChat();
+  
+  // Debug: Check if organization user has proper ID
+  useEffect(() => {
+    console.log('OrganizationDashboard - User ID:', user.id);
+    console.log('OrganizationDashboard - User Type:', user.userType);
+    console.log('OrganizationDashboard - localStorage currentUserId:', localStorage.getItem('currentUserId'));
+  }, [user]);
   const [activeTab, setActiveTab] = useState("offers");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -1593,8 +1601,12 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between max-w-sm mx-auto">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-white" />
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img 
+                src={logoVertical} 
+                alt="Młody Kraków Logo" 
+                className="h-10 w-auto object-contain"
+              />
             </div>
             <div>
               <h1 className="text-lg">Cześć, {user.firstName}!</h1>
@@ -1608,6 +1620,9 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('OrganizationDashboard - Chat button clicked');
+                console.log('OrganizationDashboard - User ID:', user.id);
+                console.log('OrganizationDashboard - User Type:', user.userType);
                 openChat();
               }}
               title="Otwórz chat"
