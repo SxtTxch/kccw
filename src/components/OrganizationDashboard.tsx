@@ -444,7 +444,8 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
   const [loadingVolunteers, setLoadingVolunteers] = useState(true);
   const [applications, setApplications] = useState<any[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(false);
-  const [calendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [loadingCalendarEvents, setLoadingCalendarEvents] = useState(false);
   const [reviews] = useState<Review[]>(mockReviews);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -497,6 +498,45 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
 
     fetchData();
   }, [user?.id]);
+
+  // Fetch calendar events from Firebase
+  useEffect(() => {
+    const fetchCalendarEvents = async () => {
+      try {
+        setLoadingCalendarEvents(true);
+        const { collection, getDocs } = await import('firebase/firestore');
+        const { db } = await import('../firebase/config');
+        
+        const eventsRef = collection(db, 'calendarEvents');
+        const querySnapshot = await getDocs(eventsRef);
+        
+        const events: CalendarEvent[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          events.push({
+            id: parseInt(doc.id) || Math.random(),
+            title: data.title,
+            date: data.date,
+            time: data.time,
+            type: data.type || 'event',
+            description: data.description,
+            attendees: data.attendees || [],
+            location: data.location,
+            status: data.status || 'scheduled'
+          });
+        });
+        
+        console.log('Fetched calendar events:', events);
+        setCalendarEvents(events);
+      } catch (error) {
+        console.error('Error fetching calendar events:', error);
+      } finally {
+        setLoadingCalendarEvents(false);
+      }
+    };
+
+    fetchCalendarEvents();
+  }, []);
 
   const [organizationMembers, setOrganizationMembers] = useState<OrganizationMember[]>(mockOrganizationMembers);
   const [isAddingMember, setIsAddingMember] = useState(false);
@@ -799,6 +839,81 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
       }
     } catch (error) {
       console.error('Error rejecting application:', error);
+    }
+  };
+
+  // Get dates that have offers
+  const getOfferDates = () => {
+    return offers.map(offer => new Date(offer.startDate));
+  };
+
+  // Get offers for a specific date
+  const getOffersForDate = (date: Date) => {
+    const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD format in local timezone
+    return offers.filter(offer => {
+      const offerDate = new Date(offer.startDate).toLocaleDateString('en-CA');
+      return offerDate === dateStr;
+    });
+  };
+
+  // Handle calendar date click
+  const handleCalendarDateClick = (date: Date) => {
+    setSelectedDate(date);
+    // Events will be displayed below calendar automatically
+  };
+
+  // Get upcoming events (next 7 days) from offers and calendar events
+  const getUpcomingEvents = () => {
+    const today = new Date();
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    // Get upcoming offers
+    const upcomingOffers = offers
+      .filter(offer => {
+        const offerDate = new Date(offer.startDate);
+        return offerDate >= today && offerDate <= nextWeek;
+      })
+      .map(offer => ({
+        id: offer.id,
+        title: offer.title,
+        date: offer.startDate,
+        time: '09:00', // Default time for offers
+        type: 'offer',
+        description: offer.description,
+        location: offer.location,
+        organization: offer.organization,
+        participants: offer.currentParticipants,
+        maxParticipants: offer.maxParticipants
+      }));
+
+    // Get upcoming calendar events
+    const upcomingCalendarEvents = calendarEvents
+      .filter(event => {
+        const eventDate = new Date(event.date);
+        return eventDate >= today && eventDate <= nextWeek;
+      })
+      .map(event => ({
+        id: event.id,
+        title: event.title,
+        date: event.date,
+        time: event.time,
+        type: event.type,
+        description: event.description,
+        location: event.location,
+        attendees: event.attendees
+      }));
+
+    return [...upcomingOffers, ...upcomingCalendarEvents].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  };
+
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case 'high': return 'bg-red-100 text-red-800 border-red-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -2110,41 +2225,58 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {calendarEvents.length > 0 ? (
+                {getUpcomingEvents().length > 0 ? (
                   <div className="space-y-3">
-                    {calendarEvents.map(event => (
+                    {getUpcomingEvents().map(event => (
                       <div key={event.id} className="p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm">{event.title}</h4>
-                          <Badge className={`${getEventTypeColor(event.type)} border text-xs`}>
-                            {event.type === 'meeting' ? 'Spotkanie' : 
-                             event.type === 'activity' ? 'Aktywność' :
-                             event.type === 'training' ? 'Szkolenie' : 'Termin'}
+                          <h4 className="text-sm font-medium">{event.title}</h4>
+                          <Badge className={`${event.type === 'offer' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-green-100 text-green-800 border-green-200'} text-xs`}>
+                            {event.type === 'offer' ? 'Oferta' : 
+                             event.type === 'meeting' ? 'Spotkanie' : 
+                             event.type === 'training' ? 'Szkolenie' : 'Wydarzenie'}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">{event.description}</p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(event.date).toLocaleDateString('pl-PL')}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {event.time}
+                          </span>
+                          {event.location && (
                             <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(event.date).toLocaleDateString('pl-PL')}
+                              <MapPin className="h-3 w-3" />
+                              {event.location}
                             </span>
+                          )}
+                          {event.type === 'offer' && event.participants !== undefined && (
                             <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {event.time}
+                              <Users className="h-3 w-3" />
+                              {event.participants}/{event.maxParticipants} osób
                             </span>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {event.assignedVolunteers.length} osób
-                          </Badge>
+                          )}
                         </div>
+                        {event.type === 'offer' && event.organization && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            <span className="font-medium">Organizacja:</span> {event.organization}
+                          </div>
+                        )}
+                        {event.type !== 'offer' && event.attendees && event.attendees.length > 0 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            <span className="font-medium">Uczestnicy:</span> {event.attendees.join(', ')}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-4">
                     <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Brak zaplanowanych wydarzeń</p>
+                    <p className="text-sm text-muted-foreground">Brak nadchodzących wydarzeń</p>
                   </div>
                 )}
               </CardContent>
@@ -2162,48 +2294,72 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
                   onSelect={setSelectedDate}
                   className="rounded-md border w-full"
                   modifiers={{
-                    hasEvents: (date) => {
-                      const dateString = date.toISOString().split('T')[0];
-                      return calendarEvents.some(event => event.date === dateString);
-                    },
-                    hasImportantEvents: (date) => {
-                      const dateString = date.toISOString().split('T')[0];
-                      return calendarEvents.some(event => 
-                        event.date === dateString && 
-                        (event.type === 'training' || event.type === 'meeting')
-                      );
-                    },
-                    hasActivities: (date) => {
-                      const dateString = date.toISOString().split('T')[0];
-                      return calendarEvents.some(event => 
-                        event.date === dateString && event.type === 'activity'
-                      );
-                    }
+                    hasOffers: getOfferDates()
                   }}
                   modifiersStyles={{
-                    hasEvents: {
-                      backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                      borderRadius: '8px',
+                    hasOffers: {
+                      backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                      color: '#22c55e',
                       fontWeight: 'bold',
-                      color: '#059669'
-                    },
-                    hasImportantEvents: {
-                      backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      color: '#dc2626',
-                      border: '2px solid rgba(239, 68, 68, 0.5)'
-                    },
-                    hasActivities: {
-                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      color: '#2563eb'
+                      cursor: 'pointer'
                     }
                   }}
                 />
               </CardContent>
             </Card>
+
+            {/* Selected Date Offers */}
+            {selectedDate && getOffersForDate(selectedDate).length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">
+                    Oferty na {selectedDate.toLocaleDateString('pl-PL')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {getOffersForDate(selectedDate).map(offer => (
+                      <div 
+                        key={offer.id} 
+                        className="border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => {
+                          setSelectedOffer(offer);
+                          setCurrentView('view');
+                        }}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-lg font-medium">{offer.title}</h4>
+                          <Badge className={`${getUrgencyColor(offer.urgency)} border text-xs`}>
+                            {offer.urgency === 'high' ? 'Pilne' : offer.urgency === 'medium' ? 'Średnie' : 'Niskie'}
+                          </Badge>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-3">{offer.organization}</p>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span>{new Date(offer.startDate).toLocaleDateString('pl-PL')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span>{offer.location}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>{offer.currentParticipants}/{offer.maxParticipants}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span>{offer.category}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
 
