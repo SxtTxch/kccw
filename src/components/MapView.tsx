@@ -205,34 +205,139 @@ export function MapView({ userType }: MapViewProps) {
   const [selectedInitiative, setSelectedInitiative] = useState(null);
   const [showList, setShowList] = useState(false);
   
-  // Simple marker state
+  // Route creation state
+  const [isCreatingRoute, setIsCreatingRoute] = useState(false);
+  const [routeStartPoint, setRouteStartPoint] = useState<{lat: number, lng: number} | null>(null);
+  const [routeEndPoint, setRouteEndPoint] = useState<{lat: number, lng: number} | null>(null);
+  const [routeMarkers, setRouteMarkers] = useState<any[]>([]);
+  const [routeDirections, setRouteDirections] = useState<any>(null);
   const [markers, setMarkers] = useState<any[]>([]);
 
-  // Simple map click handler
+  // Route creation functions
+  const startRouteCreation = () => {
+    console.log('Starting route creation...');
+    setIsCreatingRoute(true);
+    setRouteStartPoint(null);
+    setRouteEndPoint(null);
+    // Clear existing route markers
+    routeMarkers.forEach(marker => marker.setMap(null));
+    setRouteMarkers([]);
+    if (routeDirections) {
+      routeDirections.setMap(null);
+      setRouteDirections(null);
+    }
+    console.log('Route creation mode activated');
+  };
+
+  const cancelRouteCreation = () => {
+    setIsCreatingRoute(false);
+    setRouteStartPoint(null);
+    setRouteEndPoint(null);
+    // Clear route markers
+    routeMarkers.forEach(marker => marker.setMap(null));
+    setRouteMarkers([]);
+    if (routeDirections) {
+      routeDirections.setMap(null);
+      setRouteDirections(null);
+    }
+  };
+
   const handleMapClick = (event: any, map: any) => {
-    console.log('Map clicked!');
+    console.log('Map clicked!', { isCreatingRoute, routeStartPoint, routeEndPoint });
     
+    if (!isCreatingRoute) {
+      console.log('Not in route creation mode');
+      return;
+    }
+
     const latLng = event.latLng;
     const lat = latLng.lat();
     const lng = latLng.lng();
 
     console.log('Click coordinates:', { lat, lng });
 
-    // Add a simple marker
-    addMarker(map, lat, lng);
+    if (!routeStartPoint) {
+      console.log('Setting start point');
+      // Set start point
+      setRouteStartPoint({ lat, lng });
+      addRouteMarker(map, lat, lng, 'A', '#4CAF50');
+    } else if (!routeEndPoint) {
+      console.log('Setting end point');
+      // Set end point
+      setRouteEndPoint({ lat, lng });
+      addRouteMarker(map, lat, lng, 'B', '#F44336');
+      // Calculate route
+      calculateRoute(map);
+    }
   };
 
-  const addMarker = (map: any, lat: number, lng: number) => {
-    console.log('Adding marker:', { lat, lng });
+  const addRouteMarker = (map: any, lat: number, lng: number, label: string, color: string) => {
+    console.log('Adding route marker:', { lat, lng, label, color });
     
     const marker = new (window as any).google.maps.Marker({
       position: { lat, lng },
       map: map,
-      title: `Marker at ${lat.toFixed(4)}, ${lng.toFixed(4)}`
+      label: {
+        text: label,
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: '16px'
+      },
+      icon: {
+        path: (window as any).google.maps.SymbolPath.CIRCLE,
+        scale: 20,
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: 'white',
+        strokeWeight: 3
+      }
     });
     
-    console.log('Marker created:', marker);
-    setMarkers(prev => [...prev, marker]);
+    console.log('Route marker created:', marker);
+    setRouteMarkers(prev => [...prev, marker]);
+  };
+
+  const calculateRoute = (map: any) => {
+    if (!routeStartPoint || !routeEndPoint) return;
+
+    console.log('Calculating route between:', routeStartPoint, routeEndPoint);
+
+    const directionsService = new (window as any).google.maps.DirectionsService();
+    const directionsRenderer = new (window as any).google.maps.DirectionsRenderer({
+      suppressMarkers: true, // We have our own markers
+      polylineOptions: {
+        strokeColor: '#2196F3',
+        strokeWeight: 4
+      }
+    });
+
+    directionsRenderer.setMap(map);
+
+    directionsService.route({
+      origin: routeStartPoint,
+      destination: routeEndPoint,
+      travelMode: (window as any).google.maps.TravelMode.DRIVING
+    }, (result: any, status: any) => {
+      if (status === 'OK') {
+        console.log('Route calculated successfully');
+        directionsRenderer.setDirections(result);
+        setRouteDirections(directionsRenderer);
+      } else {
+        console.error('Directions request failed:', status);
+      }
+    });
+  };
+
+  const saveRoute = () => {
+    if (!routeStartPoint || !routeEndPoint) return;
+
+    console.log('Saving route...');
+    // Here you can save the route to Firestore
+    // For now, just reset the route creation
+    setIsCreatingRoute(false);
+    setRouteStartPoint(null);
+    setRouteEndPoint(null);
+    console.log('Route saved successfully');
   };
 
   // Google Maps implementation
@@ -459,23 +564,41 @@ export function MapView({ userType }: MapViewProps) {
               </button>
             </div>
 
-            {/* Simple Marker Controls */}
+            {/* Route Creation Controls */}
             <div className="space-y-3">
-              <Button 
-                onClick={() => {
-                  console.log('Clearing all markers');
-                  markers.forEach(marker => marker.setMap(null));
-                  setMarkers([]);
-                }} 
-                variant="outline" 
-                className="w-full"
-              >
-                <Target className="h-4 w-4 mr-2" />
-                Wyczyść markery
-              </Button>
-              <p className="text-sm text-muted-foreground text-center">
-                Kliknij na mapie aby dodać marker
-              </p>
+              {!isCreatingRoute ? (
+                <Button onClick={startRouteCreation} className="w-full">
+                  <Target className="h-4 w-4 mr-2" />
+                  Dodaj Trasę
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {!routeStartPoint ? 'Kliknij na mapie aby wybrać punkt A' : 
+                       !routeEndPoint ? 'Kliknij na mapie aby wybrać punkt B' : 
+                       'Trasa gotowa do zapisania'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={saveRoute} 
+                      disabled={!routeStartPoint || !routeEndPoint}
+                      className="flex-1"
+                    >
+                      <Target className="h-4 w-4 mr-2" />
+                      Zapisz Trasę
+                    </Button>
+                    <Button 
+                      onClick={cancelRouteCreation} 
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Anuluj
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Map Info */}
