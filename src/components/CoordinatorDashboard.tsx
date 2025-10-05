@@ -1630,7 +1630,7 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                             </div>
                           </div>
                           
-                          {/* Goal Achievement - based on completed projects vs total offers */}
+                          {/* Goal Achievement - based on students with completed projects */}
                           <div className="flex justify-between items-center">
                             <span className="text-sm">Realizacja celów</span>
                             <div className="flex items-center gap-2">
@@ -1638,17 +1638,17 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                                 <div 
                                   className="h-2 bg-green-500 rounded-full transition-all duration-300"
                                   style={{ 
-                                    width: `${stats.totalOffers > 0 ? Math.min((stats.completedProjects / stats.totalOffers) * 100, 100) : 0}%` 
+                                    width: `${stats.totalStudents > 0 ? (students.filter(s => (s.totalProjects || 0) > 0).length / stats.totalStudents) * 100 : 0}%` 
                                   }}
                                 ></div>
                               </div>
                               <span className="text-sm text-muted-foreground">
-                                {stats.totalOffers > 0 ? Math.round(Math.min((stats.completedProjects / stats.totalOffers) * 100, 100)) : 0}%
+                                {stats.totalStudents > 0 ? Math.round((students.filter(s => (s.totalProjects || 0) > 0).length / stats.totalStudents) * 100) : 0}%
                               </span>
                             </div>
                           </div>
                           
-                          {/* Organization Collaboration - based on active organizations */}
+                          {/* Organization Collaboration - based on active organizations vs target of 10 */}
                           <div className="flex justify-between items-center">
                             <span className="text-sm">Współpraca z organizacjami</span>
                             <div className="flex items-center gap-2">
@@ -1656,30 +1656,30 @@ export function CoordinatorDashboard({ user, onLogout }: CoordinatorDashboardPro
                                 <div 
                                   className="h-2 bg-purple-500 rounded-full transition-all duration-300"
                                   style={{ 
-                                    width: `${stats.activeOrganizations > 0 ? Math.min((stats.activeOrganizations / Math.max(stats.activeOrganizations, 5)) * 100, 100) : 0}%` 
+                                    width: `${Math.min((stats.activeOrganizations / 10) * 100, 100)}%` 
                                   }}
                                 ></div>
                               </div>
                               <span className="text-sm text-muted-foreground">
-                                {stats.activeOrganizations > 0 ? Math.round(Math.min((stats.activeOrganizations / Math.max(stats.activeOrganizations, 5)) * 100, 100)) : 0}%
+                                {Math.round(Math.min((stats.activeOrganizations / 10) * 100, 100))}%
                               </span>
                             </div>
                           </div>
                           
-                          {/* Volunteer Hours Growth */}
+                          {/* Student Engagement - based on students with any volunteer hours */}
                           <div className="flex justify-between items-center">
-                            <span className="text-sm">Godziny wolontariatu</span>
+                            <span className="text-sm">Zaangażowanie uczniów</span>
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-2 bg-gray-200 rounded-full">
                                 <div 
                                   className="h-2 bg-orange-500 rounded-full transition-all duration-300"
                                   style={{ 
-                                    width: `${stats.totalHours > 0 ? Math.min((stats.totalHours / 1000) * 100, 100) : 0}%` 
+                                    width: `${stats.totalStudents > 0 ? (students.filter(s => (s.volunteerHours || 0) > 0).length / stats.totalStudents) * 100 : 0}%` 
                                   }}
                                 ></div>
                               </div>
                               <span className="text-sm text-muted-foreground">
-                                {formatNumber(stats.totalHours)}h
+                                {stats.totalStudents > 0 ? Math.round((students.filter(s => (s.volunteerHours || 0) > 0).length / stats.totalStudents) * 100) : 0}%
                               </span>
                             </div>
                           </div>
