@@ -1333,7 +1333,7 @@ export function VolunteerDashboard({ user, onLogout }: VolunteerDashboardProps) 
               <img 
                 src={logoVertical} 
                 alt="Młody Kraków Logo" 
-                className="h-11 w-auto object-contain"
+                className="h-12.5 w-auto object-contain"
               />
             </div>
             <div>

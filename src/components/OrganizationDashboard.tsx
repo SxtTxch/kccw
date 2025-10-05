@@ -1892,7 +1892,7 @@ export function OrganizationDashboard({ user, onLogout }: OrganizationDashboardP
               <img 
                 src={logoVertical} 
                 alt="Młody Kraków Logo" 
-                className="h-14 w-auto object-contain"
+                className="h-12 w-auto object-contain"
               />
             </div>
             <div>
