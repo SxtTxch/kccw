@@ -221,7 +221,7 @@ export function MapView({ userType }: MapViewProps) {
     setRouteStartPoint(null);
     setRouteEndPoint(null);
     // Clear existing markers
-    routeMarkers.forEach(marker => marker.map = null);
+    routeMarkers.forEach(marker => marker.setMap(null));
     setRouteMarkers([]);
     if (routeDirections) {
       routeDirections.setMap(null);
@@ -235,7 +235,7 @@ export function MapView({ userType }: MapViewProps) {
     setRouteStartPoint(null);
     setRouteEndPoint(null);
     // Clear markers
-    routeMarkers.forEach(marker => marker.map = null);
+    routeMarkers.forEach(marker => marker.setMap(null));
     setRouteMarkers([]);
     if (routeDirections) {
       routeDirections.setMap(null);
@@ -275,27 +275,24 @@ export function MapView({ userType }: MapViewProps) {
   const addMarker = (map: any, lat: number, lng: number, label: string, color: string) => {
     console.log('Adding marker:', { lat, lng, label, color });
     
-    // Create a custom marker element
-    const markerElement = document.createElement('div');
-    markerElement.style.width = '40px';
-    markerElement.style.height = '40px';
-    markerElement.style.borderRadius = '50%';
-    markerElement.style.backgroundColor = color;
-    markerElement.style.border = '3px solid white';
-    markerElement.style.display = 'flex';
-    markerElement.style.alignItems = 'center';
-    markerElement.style.justifyContent = 'center';
-    markerElement.style.fontWeight = 'bold';
-    markerElement.style.fontSize = '16px';
-    markerElement.style.color = 'white';
-    markerElement.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-    markerElement.textContent = label;
-
-    console.log('Creating AdvancedMarkerElement...');
-    const marker = new (window as any).google.maps.marker.AdvancedMarkerElement({
+    // Create a custom marker using traditional Marker with custom icon
+    const marker = new (window as any).google.maps.Marker({
       position: { lat, lng },
       map: map,
-      content: markerElement
+      label: {
+        text: label,
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: '16px'
+      },
+      icon: {
+        path: (window as any).google.maps.SymbolPath.CIRCLE,
+        scale: 20,
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: 'white',
+        strokeWeight: 3
+      }
     });
     
     console.log('Marker created:', marker);
