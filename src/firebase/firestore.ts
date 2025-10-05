@@ -1500,14 +1500,13 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
 // Fetch certificate applications for a specific student
 export const getCertificateApplications = async (studentId: string) => {
   try {
-    const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+    const { collection, query, where, getDocs } = await import('firebase/firestore');
     const { db } = await import('./config');
     
     const applicationsRef = collection(db, 'certificateApplications');
     const q = query(
       applicationsRef,
-      where('studentId', '==', studentId),
-      orderBy('submittedAt', 'desc')
+      where('studentId', '==', studentId)
     );
     
     const querySnapshot = await getDocs(q);
@@ -1515,6 +1514,12 @@ export const getCertificateApplications = async (studentId: string) => {
       id: doc.id,
       ...doc.data()
     }));
+    
+    // Sort by submittedAt on the client side to avoid index requirement
+    applications.sort((a, b) => {
+      if (!a.submittedAt || !b.submittedAt) return 0;
+      return b.submittedAt.seconds - a.submittedAt.seconds;
+    });
     
     console.log(`Found ${applications.length} certificate applications for student: ${studentId}`);
     return applications;
